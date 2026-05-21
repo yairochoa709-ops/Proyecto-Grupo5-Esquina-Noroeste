@@ -34,7 +34,7 @@ function App() {
     if (selectedExercise) {
       const res = solveNorthwestCorner(selectedExercise);
       setSolutionsCache(prev => ({ ...prev, [selectedExercise.id]: res }));
-      setCurrentFrames(prev => ({ ...prev, [selectedExercise.id]: res.frames.length - 1 })); // Va directo al paso final
+      setCurrentFrames(prev => ({ ...prev, [selectedExercise.id]: 0 })); // Inicia en el primer paso
     }
   };
 
