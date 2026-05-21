@@ -8,7 +8,7 @@ function App() {
   const [exercises, setExercises] = useState([]);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [solutionsCache, setSolutionsCache] = useState({});
-  const [currentFrame, setCurrentFrame] = useState(0);
+  const [currentFrames, setCurrentFrames] = useState({});
 
   useEffect(() => {
     const batch = generateBatch(5);
@@ -23,23 +23,32 @@ function App() {
     setExercises(batch);
     setSelectedExercise(batch[0]);
     setSolutionsCache({});
-    setCurrentFrame(0);
+    setCurrentFrames({});
   };
 
   const handleSelect = (ex) => {
     setSelectedExercise(ex);
-    setCurrentFrame(0);
   };
 
   const handleSolve = () => {
     if (selectedExercise) {
       const res = solveNorthwestCorner(selectedExercise);
       setSolutionsCache(prev => ({ ...prev, [selectedExercise.id]: res }));
-      setCurrentFrame(0);
+      setCurrentFrames(prev => ({ ...prev, [selectedExercise.id]: res.frames.length - 1 })); // Va directo al paso final
     }
   };
 
   const currentSolution = selectedExercise ? solutionsCache[selectedExercise.id] : null;
+  const activeFrame = selectedExercise ? (currentFrames[selectedExercise.id] || 0) : 0;
+
+  const updateActiveFrame = (updater) => {
+    if (!selectedExercise) return;
+    setCurrentFrames(prev => {
+      const current = prev[selectedExercise.id] || 0;
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      return { ...prev, [selectedExercise.id]: next };
+    });
+  };
 
   const handleExportPDF = () => {
     if (currentSolution && selectedExercise) {
@@ -47,7 +56,7 @@ function App() {
     }
   };
 
-  const frameData = currentSolution ? currentSolution.frames[currentFrame] : null;
+  const frameData = currentSolution ? currentSolution.frames[activeFrame] : null;
 
   return (
     <div className="app-container">
@@ -114,16 +123,16 @@ function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <button 
                     className="btn" 
-                    disabled={currentFrame === 0} 
-                    onClick={() => setCurrentFrame(c => c - 1)}
+                    disabled={activeFrame === 0} 
+                    onClick={() => updateActiveFrame(c => c - 1)}
                   >
                     ◀ Paso Anterior
                   </button>
-                  <span style={{ fontWeight: '600' }}>Paso {currentFrame} de {currentSolution.frames.length - 1}</span>
+                  <span style={{ fontWeight: '600' }}>Paso {activeFrame} de {currentSolution.frames.length - 1}</span>
                   <button 
                     className="btn" 
-                    disabled={currentFrame === currentSolution.frames.length - 1} 
-                    onClick={() => setCurrentFrame(c => c + 1)}
+                    disabled={activeFrame === currentSolution.frames.length - 1} 
+                    onClick={() => updateActiveFrame(c => c + 1)}
                   >
                     Siguiente Paso ▶
                   </button>
@@ -131,7 +140,7 @@ function App() {
                 <div style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '8px', borderLeft: '4px solid var(--primary)', fontSize: '1.05rem', lineHeight: '1.5' }}>
                   {frameData.narrative}
                 </div>
-                {currentFrame === currentSolution.frames.length - 1 && (
+                {activeFrame === currentSolution.frames.length - 1 && (
                   <div style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold', fontSize: '1.2rem', marginTop: '10px' }}>
                     ¡Solución Completada! Costo Total de Transporte: ${currentSolution.totalCost}
                   </div>
