@@ -3,7 +3,8 @@ import Shell from "./components/layout/Shell";
 import { ActiveView } from "./components/layout/Sidebar";
 import EsquinaNoroesteView from "./features/esquina-noroeste/components/EsquinaNoroesteView";
 import DijkstraView from "./features/dijkstra/components/DijkstraView";
-import { Network, Activity, Wrench } from "lucide-react";
+import KruskalView from "./features/kruskal/components/KruskalView";
+import { Activity, Wrench } from "lucide-react";
 
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('esquina-noroeste');
@@ -29,12 +30,7 @@ function App() {
     <Shell activeView={activeView} onViewChange={setActiveView}>
       {activeView === 'esquina-noroeste' && <EsquinaNoroesteView />}
       {activeView === 'dijkstra' && <DijkstraView />}
-      {activeView === 'kruskal' && renderPlaceholder(
-        "Árbol de Expansión Mínima (Algoritmo de Kruskal)",
-        "Conecta todos los nodos de la red con el menor costo total posible, ordenando las aristas por peso y previniendo ciclos.",
-        Network,
-        "text-amber-400"
-      )}
+      {activeView === 'kruskal' && <KruskalView />}
       {activeView === 'ford-fulkerson' && renderPlaceholder(
         "Flujo Máximo (Algoritmo de Ford-Fulkerson)",
         "Calcula la cantidad máxima de flujo que puede transitar desde un nodo origen (fuente) hasta un nodo destino (sumidero) en una red con capacidades de arista limitadas.",
