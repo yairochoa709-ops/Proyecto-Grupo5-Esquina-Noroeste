@@ -1,5 +1,5 @@
 import { DijkstraExercise, DijkstraSolution, DijkstraFrame } from "../types";
-import { GraphEdge } from "../../models/graph";
+import { GraphEdge } from "../../../models/graph";
 
 export function solveDijkstra(exercise: DijkstraExercise): DijkstraSolution {
   const { graph, sourceNodeId, targetNodeId } = exercise;
@@ -158,7 +158,7 @@ export function solveDijkstra(exercise: DijkstraExercise): DijkstraSolution {
     let curr: string | null = targetNodeId;
     while (curr) {
       shortestPath.unshift(curr);
-      const prevVal = previous[curr];
+      const prevVal: string | null = previous[curr];
       if (prevVal) {
         const edge = edges.find(e => 
           (e.source === prevVal && e.target === curr) || 

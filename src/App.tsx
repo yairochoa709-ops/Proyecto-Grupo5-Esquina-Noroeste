@@ -2,7 +2,8 @@ import { useState } from "react";
 import Shell from "./components/layout/Shell";
 import { ActiveView } from "./components/layout/Sidebar";
 import EsquinaNoroesteView from "./features/esquina-noroeste/components/EsquinaNoroesteView";
-import { Compass, Network, Activity, Wrench } from "lucide-react";
+import DijkstraView from "./features/dijkstra/components/DijkstraView";
+import { Network, Activity, Wrench } from "lucide-react";
 
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('esquina-noroeste');
@@ -27,12 +28,7 @@ function App() {
   return (
     <Shell activeView={activeView} onViewChange={setActiveView}>
       {activeView === 'esquina-noroeste' && <EsquinaNoroesteView />}
-      {activeView === 'dijkstra' && renderPlaceholder(
-        "Ruta Más Corta (Algoritmo de Dijkstra)",
-        "Encuentra la ruta óptima con la menor distancia o costo acumulado entre un nodo de origen y todos los demás nodos de la red.",
-        Compass,
-        "text-emerald-400"
-      )}
+      {activeView === 'dijkstra' && <DijkstraView />}
       {activeView === 'kruskal' && renderPlaceholder(
         "Árbol de Expansión Mínima (Algoritmo de Kruskal)",
         "Conecta todos los nodos de la red con el menor costo total posible, ordenando las aristas por peso y previniendo ciclos.",
