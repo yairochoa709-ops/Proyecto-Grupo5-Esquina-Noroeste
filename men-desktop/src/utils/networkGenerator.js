@@ -2,11 +2,23 @@ export function generateNetworkExercise(id) {
   const nodeCount = Math.floor(Math.random() * 3) + 5; // 5 to 7 nodes
   const nodes = [];
   
-  nodes.push({ id: 'S', label: 'S (Origen)' });
+  // Nodos ficticios de inicio y fin (duración 0)
+  nodes.push({ id: 'S', label: 'S (Origen)', duration: 0, a: 0, m: 0, b: 0 });
   for (let i = 0; i < nodeCount - 2; i++) {
-    nodes.push({ id: String.fromCharCode(65 + i), label: String.fromCharCode(65 + i) });
+    const durationBase = Math.floor(Math.random() * 10) + 2; // de 2 a 11
+    const a = Math.max(1, Math.floor(durationBase * 0.6));
+    const m = durationBase;
+    const b = Math.floor(durationBase * 1.5);
+    nodes.push({ 
+      id: String.fromCharCode(65 + i), 
+      label: String.fromCharCode(65 + i),
+      duration: durationBase,
+      optimistic: a,
+      mostLikely: m,
+      pessimistic: b
+    });
   }
-  nodes.push({ id: 'T', label: 'T (Destino)' });
+  nodes.push({ id: 'T', label: 'T (Destino)', duration: 0, a: 0, m: 0, b: 0 });
 
   const edges = [];
   let edgeIdCounter = 1;

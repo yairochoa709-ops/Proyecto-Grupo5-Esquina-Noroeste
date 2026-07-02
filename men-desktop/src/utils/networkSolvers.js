@@ -46,24 +46,25 @@ function solveCriticalPath(exercise, mode) {
   const frames = [];
 
   const activityNodes = nodes.map((n) => ({ ...n }));
-  const augmentedNodes = [{ id: 'Inicio' }, ...activityNodes, { id: 'Fin' }];
+  // Nodos ficticios solo si es necesario, pero como ya tenemos S y T con indegree 0 y outdegree 0, 
+  // es mejor usar S y T si existen. El generador crea 'S' y 'T'. 
+  // Para ser genérico, añadimos Inicio y Fin, aunque S y T estarán en medio.
+  const augmentedNodes = [{ id: 'Inicio', duration: 0 }, ...activityNodes, { id: 'Fin', duration: 0 }];
   const startNodes = activityNodes.filter((node) => !edges.some((edge) => edge.to === node.id)).map((node) => node.id);
   const finishNodes = activityNodes.filter((node) => !edges.some((edge) => edge.from === node.id)).map((node) => node.id);
 
   const augmentedEdges = [
-    ...startNodes.map((nodeId) => ({ id: `start-${nodeId}`, from: 'Inicio', to: nodeId, duration: 0 })),
+    ...startNodes.map((nodeId) => ({ id: `start-${nodeId}`, from: 'Inicio', to: nodeId, duration: 0, cost: 0 })),
     ...edges.map((edge) => ({ ...edge })),
-    ...finishNodes.map((nodeId) => ({ id: `end-${nodeId}`, from: nodeId, to: 'Fin', duration: 0 }))
+    ...finishNodes.map((nodeId) => ({ id: `end-${nodeId}`, from: nodeId, to: 'Fin', duration: 0, cost: 0 }))
   ];
 
   const adjacency = {};
   const indegree = {};
-
   augmentedNodes.forEach((n) => {
     adjacency[n.id] = [];
     indegree[n.id] = 0;
   });
-
   augmentedEdges.forEach((e) => {
     adjacency[e.from].push(e);
     indegree[e.to] += 1;
@@ -71,7 +72,6 @@ function solveCriticalPath(exercise, mode) {
 
   const queue = augmentedNodes.map((n) => n.id).filter((id) => indegree[id] === 0);
   const topo = [];
-
   while (queue.length > 0) {
     const current = queue.shift();
     topo.push(current);
@@ -87,225 +87,234 @@ function solveCriticalPath(exercise, mode) {
 
   const earliestStart = {};
   const earliestFinish = {};
-  const predecessor = {};
-  const predecessorEdge = {};
-  const nodeDurations = {};
-
-  augmentedNodes.forEach((n) => {
-    const originalNode = activityNodes.find((candidate) => candidate.id === n.id);
-    earliestStart[n.id] = n.id === 'Inicio' ? 0 : -Infinity;
-    earliestFinish[n.id] = n.id === 'Inicio' ? 0 : -Infinity;
-    predecessor[n.id] = null;
-    predecessorEdge[n.id] = null;
-    nodeDurations[n.id] = getNodeDuration(originalNode ?? n, augmentedEdges.filter((edge) => edge.to === n.id), mode);
-  });
-
-  // Frame: Introducción y Inicio cálculo hacia adelante
-  frames.push({
-    narrative: `Se inicia el cálculo de la ruta crítica utilizando ${mode === 'pert' ? 'PERT' : 'CPM'}. Se han integrado nodos ficticios: Inicio (0) y Fin (0).`,
-    nodeStates: {},
-    activeEdges: [],
-    path: [],
-    criticalPath: [],
-    criticalEdges: [],
-    edgeDurations: {}
-  });
-
-  frames.push({
-    narrative: `Paso 1: CÁLCULO HACIA ADELANTE (IC/TC). Comienza con Inicio: IC=0, TC=0.`,
-    nodeStates: { Inicio: { earliestStart: 0, latestFinish: 0, slack: 0, critical: false } },
-    activeEdges: [],
-    path: [],
-    criticalPath: [],
-    criticalEdges: [],
-    edgeDurations: {}
-  });
-
-  topo.forEach((nodeId) => {
-    if (nodeId === 'Inicio') return;
-
-    const incoming = augmentedEdges.filter((e) => e.to === nodeId);
-    let bestPred = null;
-    let bestEdge = null;
-    let bestValue = -Infinity;
-
-    incoming.forEach((edge) => {
-      const candidate = earliestFinish[edge.from];
-      if (Number.isFinite(candidate) && candidate > bestValue) {
-        bestValue = candidate;
-        bestPred = edge.from;
-        bestEdge = edge.id;
-      }
-    });
-
-    if (bestPred !== null) {
-      earliestStart[nodeId] = bestValue;
-      earliestFinish[nodeId] = earliestStart[nodeId] + nodeDurations[nodeId];
-      predecessor[nodeId] = bestPred;
-      predecessorEdge[nodeId] = bestEdge;
-
-      const predDesc = incoming.length > 1 
-        ? `Máximo: IC=${Math.max(...incoming.map(e => earliestFinish[e.from])).toFixed(2)}.` 
-        : '';
-      
-      frames.push({
-        narrative: `${nodeId}: IC=${earliestStart[nodeId].toFixed(2)}, Duración=${nodeDurations[nodeId].toFixed(2)}, TC=${earliestFinish[nodeId].toFixed(2)}. ${predDesc}`,
-        nodeStates: {},
-        activeEdges: [],
-        path: [],
-        criticalPath: [],
-        criticalEdges: [],
-        edgeDurations: {}
-      });
-    }
-  });
-
-  const totalDuration = Number.isFinite(earliestFinish.Fin) ? earliestFinish.Fin : 0;
-
-  frames.push({
-    narrative: `Tiempo total del proyecto: ${totalDuration.toFixed(2)} unidades.`,
-    nodeStates: {},
-    activeEdges: [],
-    path: [],
-    criticalPath: [],
-    criticalEdges: [],
-    edgeDurations: {}
-  });
-
   const latestStart = {};
   const latestFinish = {};
-
-  augmentedNodes.forEach((n) => {
-    latestFinish[n.id] = n.id === 'Fin' ? totalDuration : Infinity;
-  });
-
-  frames.push({
-    narrative: `Paso 2: CÁLCULO HACIA ATRÁS (IL/TL). Comienza desde Fin: TL=${totalDuration.toFixed(2)}, IL=${totalDuration.toFixed(2)}.`,
-    nodeStates: { Fin: { earliestStart: totalDuration, latestFinish: totalDuration, slack: 0, critical: false } },
-    activeEdges: [],
-    path: [],
-    criticalPath: [],
-    criticalEdges: [],
-    edgeDurations: {}
-  });
-
-  for (let i = topo.length - 1; i >= 0; i -= 1) {
-    const nodeId = topo[i];
-    if (nodeId === 'Fin') {
-      latestStart[nodeId] = totalDuration;
-      latestFinish[nodeId] = totalDuration;
-      continue;
-    }
-
-    const outgoing = augmentedEdges.filter((e) => e.from === nodeId);
-    if (outgoing.length === 0) {
-      latestStart[nodeId] = latestFinish[nodeId] - nodeDurations[nodeId];
-      continue;
-    }
-
-    const successorValues = outgoing.map((edge) => latestStart[edge.to]);
-    latestFinish[nodeId] = Math.min(...successorValues);
-    latestStart[nodeId] = latestFinish[nodeId] - nodeDurations[nodeId];
-
-    const succDesc = outgoing.length > 1 
-      ? `Mínimo: TL=${Math.min(...successorValues).toFixed(2)}.` 
-      : '';
-
-    frames.push({
-      narrative: `${nodeId}: TL=${latestFinish[nodeId].toFixed(2)}, Duración=${nodeDurations[nodeId].toFixed(2)}, IL=${latestStart[nodeId].toFixed(2)}. ${succDesc}`,
-      nodeStates: {},
-      activeEdges: [],
-      path: [],
-      criticalPath: [],
-      criticalEdges: [],
-      edgeDurations: {}
-    });
-  }
-
-  const criticalNodeIds = new Set();
   const slackValues = {};
-
-  augmentedNodes.forEach((n) => {
-    const slack = latestStart[n.id] - earliestStart[n.id];
-    slackValues[n.id] = slack;
-    if (slack === 0) {
-      criticalNodeIds.add(n.id);
-    }
-  });
-
-  frames.push({
-    narrative: `Paso 3: CÁLCULO DE HOLGURA. Fórmula: H = IL - IC.`,
-    nodeStates: {},
-    activeEdges: [],
-    path: [],
-    criticalPath: [],
-    criticalEdges: [],
-    edgeDurations: {}
-  });
-
-  augmentedNodes.forEach((n) => {
-    if (n.id === 'Inicio' || n.id === 'Fin') return;
-    
-    const slack = slackValues[n.id];
-    const indicator = slack === 0 ? '✓ CRÍTICA' : '';
-    
-    frames.push({
-      narrative: `${n.id}: H = ${latestStart[n.id].toFixed(2)} - ${earliestStart[n.id].toFixed(2)} = ${slack.toFixed(2)} ${indicator}`,
-      nodeStates: {},
-      activeEdges: [],
-      path: [],
-      criticalPath: [],
-      criticalEdges: [],
-      edgeDurations: {}
-    });
-  });
-
-  const criticalPathNodes = [];
-  let currentNode = 'Fin';
-  while (currentNode) {
-    criticalPathNodes.unshift(currentNode);
-    if (currentNode === 'Inicio') break;
-
-    const prev = predecessor[currentNode];
-    if (!prev || !criticalNodeIds.has(prev)) {
-      break;
-    }
-
-    currentNode = prev;
-  }
-
-  if (criticalPathNodes[0] !== 'Inicio') {
-    criticalPathNodes.unshift('Inicio');
-  }
-
-  const criticalEdges = augmentedEdges
-    .filter((edge) => edge.id && !edge.id.startsWith('start-') && !edge.id.startsWith('end-'))
-    .filter((edge) => criticalPathNodes.includes(edge.from) && criticalPathNodes.includes(edge.to))
-    .map((edge) => edge.id);
-
-  const nodeStates = {};
-  augmentedNodes.forEach((n) => {
-    const earliest = Number.isFinite(earliestStart[n.id]) ? earliestStart[n.id] : 0;
-    const latest = Number.isFinite(latestFinish[n.id]) ? latestFinish[n.id] : earliest;
-    nodeStates[n.id] = {
-      earliestStart: earliest,
-      latestFinish: latest,
-      latestStart: Number.isFinite(latestStart[n.id]) ? latestStart[n.id] : latest,
-      slack: (Number.isFinite(latestStart[n.id]) ? latestStart[n.id] : latest) - earliest,
-      critical: criticalNodeIds.has(n.id)
+  const predecessor = {};
+  const nodeDurations = {};
+  const expectedTimes = {}; // Solo para PERT
+  
+  // Estado acumulativo para visualización
+  let currentNodeTimings = {};
+  augmentedNodes.forEach(n => {
+    currentNodeTimings[n.id] = {
+      earliestStart: null, earliestFinish: null,
+      latestStart: null, latestFinish: null,
+      slack: null, critical: false
     };
   });
 
-  frames.push({
-    narrative: `Paso 4: RUTA CRÍTICA IDENTIFICADA. Camino: ${criticalPathNodes.join(' → ')}. Duración: ${totalDuration.toFixed(2)} unidades. Sin holgura, todo retraso afecta el proyecto.`,
-    nodeStates,
+  // Paso 0: Introducción
+  let baseState = {
+    narrative: `Se inicia el cálculo de la ruta crítica utilizando ${mode === 'pert' ? 'PERT' : 'CPM'}. Se han integrado nodos ficticios: Inicio y Fin.`,
+    nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings)),
+    expectedTimes: {}, // Mostrará tabla a, m, b, T en PERT
+    activeEdges: [],
+    path: [],
+    criticalPath: [],
+    criticalEdges: [],
+    edgeDurations: {}
+  };
+  frames.push(createFrame(baseState, {}));
+
+  // === FASE PERT: Calcular tiempos esperados ===
+  if (mode === 'pert') {
+    frames.push(createFrame(baseState, {
+      narrative: `Paso 0 de PERT: Tabla de estimaciones lista (Optimista 'a', Probable 'm', Pesimista 'b'). Procedemos a calcular el Tiempo Esperado T = (a + 4m + b) / 6 para cada actividad.`
+    }));
+    
+    augmentedNodes.forEach(n => {
+      const original = activityNodes.find(an => an.id === n.id) || n;
+      if (original.id === 'Inicio' || original.id === 'Fin') {
+        expectedTimes[original.id] = { a: 0, m: 0, b: 0, t: 0, v: 0 };
+        nodeDurations[original.id] = 0;
+      } else {
+        const a = original.optimistic ?? 0;
+        const m = original.mostLikely ?? 0;
+        const b = original.pessimistic ?? 0;
+        const t = (a + 4 * m + b) / 6;
+        const v = Math.pow((b - a) / 6, 2);
+        expectedTimes[original.id] = { a, m, b, t, v };
+        nodeDurations[original.id] = t;
+      }
+    });
+
+    // Enviar frames de cálculo T (agrupando por nodos reales)
+    activityNodes.forEach((n, idx) => {
+      const tData = expectedTimes[n.id];
+      baseState.expectedTimes = JSON.parse(JSON.stringify(expectedTimes)); // Ir llenando
+      frames.push(createFrame(baseState, {
+        narrative: `Actividad ${n.id}: Tiempo Esperado T = (${tData.a} + 4(${tData.m}) + ${tData.b}) / 6 = ${tData.t.toFixed(2)}. Varianza = ((${tData.b} - ${tData.a}) / 6)² = ${tData.v.toFixed(3)}.`
+      }));
+    });
+  } else {
+    augmentedNodes.forEach(n => {
+      const original = activityNodes.find(an => an.id === n.id) || n;
+      nodeDurations[original.id] = Number(original.duration ?? original.cost ?? 0);
+    });
+  }
+
+  // === FORWARD PASS (IC / TC) ===
+  augmentedNodes.forEach(n => {
+    earliestStart[n.id] = -Infinity;
+    earliestFinish[n.id] = -Infinity;
+  });
+
+  earliestStart['Inicio'] = 0;
+  earliestFinish['Inicio'] = 0;
+  currentNodeTimings['Inicio'].earliestStart = 0;
+  currentNodeTimings['Inicio'].earliestFinish = 0;
+  
+  frames.push(createFrame(baseState, {
+    narrative: `CÁLCULO HACIA ADELANTE (Forward Pass): Se determinan los Inicios Cercanos (IC) y Términos Cercanos (TC) para cada nodo. Comenzamos en Inicio: IC=0, TC=0.`,
+    nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings))
+  }));
+
+  topo.forEach((nodeId) => {
+    if (nodeId === 'Inicio') return;
+    const incoming = augmentedEdges.filter((e) => e.to === nodeId);
+    let bestValue = -Infinity;
+    let bestPred = null;
+
+    incoming.forEach((edge) => {
+      if (earliestFinish[edge.from] > bestValue) {
+        bestValue = earliestFinish[edge.from];
+        bestPred = edge.from;
+      }
+    });
+
+    earliestStart[nodeId] = bestValue;
+    earliestFinish[nodeId] = earliestStart[nodeId] + nodeDurations[nodeId];
+    predecessor[nodeId] = bestPred;
+
+    currentNodeTimings[nodeId].earliestStart = earliestStart[nodeId];
+    currentNodeTimings[nodeId].earliestFinish = earliestFinish[nodeId];
+
+    const predDesc = incoming.length > 1 
+      ? `(Máximo entre sus predecesores: IC=${bestValue.toFixed(2)}).` 
+      : ``;
+
+    frames.push(createFrame(baseState, {
+      narrative: `Actividad ${nodeId}: IC = ${earliestStart[nodeId].toFixed(2)}, Duración = ${nodeDurations[nodeId].toFixed(2)} => TC = ${earliestFinish[nodeId].toFixed(2)}. ${predDesc}`,
+      nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings))
+    }));
+  });
+
+  const totalDuration = earliestFinish['Fin'];
+  
+  frames.push(createFrame(baseState, {
+    narrative: `Fin del Forward Pass. Tiempo total estimado del proyecto: ${totalDuration.toFixed(2)} unidades.`,
+    nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings))
+  }));
+
+  // === BACKWARD PASS (IL / TL) ===
+  augmentedNodes.forEach((n) => {
+    latestStart[n.id] = Infinity;
+    latestFinish[n.id] = Infinity;
+  });
+
+  latestStart['Fin'] = totalDuration;
+  latestFinish['Fin'] = totalDuration;
+  currentNodeTimings['Fin'].latestStart = totalDuration;
+  currentNodeTimings['Fin'].latestFinish = totalDuration;
+
+  frames.push(createFrame(baseState, {
+    narrative: `CÁLCULO HACIA ATRÁS (Backward Pass): Se determinan los Inicios Lejanos (IL) y Términos Lejanos (TL). Comenzamos en Fin: TL=${totalDuration.toFixed(2)}, IL=${totalDuration.toFixed(2)}.`,
+    nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings))
+  }));
+
+  for (let i = topo.length - 1; i >= 0; i -= 1) {
+    const nodeId = topo[i];
+    if (nodeId === 'Fin') continue;
+
+    const outgoing = augmentedEdges.filter((e) => e.from === nodeId);
+    let minSuccValue = Infinity;
+    
+    outgoing.forEach(edge => {
+      if (latestStart[edge.to] < minSuccValue) {
+        minSuccValue = latestStart[edge.to];
+      }
+    });
+
+    latestFinish[nodeId] = minSuccValue;
+    latestStart[nodeId] = latestFinish[nodeId] - nodeDurations[nodeId];
+
+    currentNodeTimings[nodeId].latestFinish = latestFinish[nodeId];
+    currentNodeTimings[nodeId].latestStart = latestStart[nodeId];
+
+    const succDesc = outgoing.length > 1 
+      ? `(Mínimo entre sus sucesores: TL=${minSuccValue.toFixed(2)}).` 
+      : ``;
+
+    frames.push(createFrame(baseState, {
+      narrative: `Actividad ${nodeId}: TL = ${latestFinish[nodeId].toFixed(2)}, Duración = ${nodeDurations[nodeId].toFixed(2)} => IL = ${latestStart[nodeId].toFixed(2)}. ${succDesc}`,
+      nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings))
+    }));
+  }
+
+  // === HOLGURA (H = IL - IC) ===
+  frames.push(createFrame(baseState, {
+    narrative: `CÁLCULO DE HOLGURA (H): Para cada actividad restaremos su Inicio Lejano (IL) menos su Inicio Cercano (IC). Si H=0, la actividad es crítica.`,
+    nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings))
+  }));
+
+  const criticalNodeIds = new Set();
+  
+  augmentedNodes.forEach(n => {
+    if (n.id === 'Inicio' || n.id === 'Fin') return;
+    
+    const slack = latestStart[n.id] - earliestStart[n.id];
+    slackValues[n.id] = slack;
+    currentNodeTimings[n.id].slack = slack;
+    
+    if (slack < 0.0001) { // Floating point safety
+      currentNodeTimings[n.id].critical = true;
+      criticalNodeIds.add(n.id);
+    }
+
+    const indicator = slack < 0.0001 ? '✓ CRÍTICA (Se marca en amarillo)' : '';
+    frames.push(createFrame(baseState, {
+      narrative: `Actividad ${n.id}: H = ${latestStart[n.id].toFixed(2)} - ${earliestStart[n.id].toFixed(2)} = ${slack.toFixed(2)}. ${indicator}`,
+      nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings))
+    }));
+  });
+
+  // Trazar ruta crítica
+  const criticalPathNodes = [];
+  let curr = 'Fin';
+  while (curr) {
+    criticalPathNodes.unshift(curr);
+    if (curr === 'Inicio') break;
+    const prev = predecessor[curr];
+    if (!prev) break; // Should not happen in a connected DAG
+    curr = prev;
+  }
+
+  const criticalEdges = augmentedEdges
+    .filter((edge) => criticalPathNodes.includes(edge.from) && criticalPathNodes.includes(edge.to))
+    .map((edge) => edge.id);
+
+  let finalNarrative = `RUTA CRÍTICA FINALIZADA. El camino crítico es: ${criticalPathNodes.join(' → ')}. Duración Total: ${totalDuration.toFixed(2)}.`;
+  
+  if (mode === 'pert') {
+    let projectVariance = 0;
+    criticalPathNodes.forEach(nodeId => {
+      if (nodeId !== 'Inicio' && nodeId !== 'Fin' && expectedTimes[nodeId]) {
+        projectVariance += expectedTimes[nodeId].v;
+      }
+    });
+    const stdDev = Math.sqrt(projectVariance);
+    finalNarrative += `\nAl sumar las varianzas de las actividades críticas obtenemos la Varianza del Proyecto: ${projectVariance.toFixed(3)}. Y la Desviación Estándar es: ${stdDev.toFixed(3)}.`;
+  }
+
+  frames.push(createFrame(baseState, {
+    narrative: finalNarrative,
+    nodeTimings: JSON.parse(JSON.stringify(currentNodeTimings)),
     activeEdges: criticalEdges,
     path: criticalPathNodes,
     criticalPath: criticalPathNodes,
-    criticalEdges,
-    totalDuration,
-    edgeDurations: Object.fromEntries(augmentedEdges.map((edge) => [edge.id, getDurationForEdge(edge, mode)]))
-  });
+    criticalEdges
+  }));
 
   return {
     method: mode === 'pert' ? 'PERT' : 'CPM',
@@ -313,7 +322,8 @@ function solveCriticalPath(exercise, mode) {
     totalDuration,
     criticalPath: criticalPathNodes,
     criticalEdges,
-    finalStates: nodeStates,
+    finalStates: currentNodeTimings,
+    expectedTimes,
     graph: {
       nodes: augmentedNodes,
       edges: augmentedEdges,

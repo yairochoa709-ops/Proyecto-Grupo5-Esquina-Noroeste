@@ -9,6 +9,7 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
   const [selectedMethod, setSelectedMethod] = useState(initialMethod);
   const [solutionsCache, setSolutionsCache] = useState({});
   const [currentFrames, setCurrentFrames] = useState({});
+  const [isTableExpanded, setIsTableExpanded] = useState(true);
   const isCriticalView = viewMode === 'critical';
   const availableMethods = isCriticalView
     ? ['cpm', 'pert']
@@ -201,6 +202,9 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
 
           let topLabel = '';
           let topLabelColor = '#93c5fd';
+          let bottomLabel = '';
+          let bottomLabelColor = '#93c5fd';
+          let sideLabel = '';
           
           if (selectedMethod === 'dijkstra' && frameData && frameData.nodeStates) {
             const state = frameData.nodeStates[n.id];
@@ -235,35 +239,110 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
           } else if (selectedMethod === 'dijkstra' && frameData && frameData.distances) {
             const d = frameData.distances[n.id];
             topLabel = `d: ${d === Infinity ? '∞' : d}`;
-          } else if ((selectedMethod === 'cpm' || selectedMethod === 'pert') && frameData && frameData.nodeStates) {
-            const state = frameData.nodeStates[n.id];
+          } else if ((selectedMethod === 'cpm' || selectedMethod === 'pert') && frameData && frameData.nodeTimings) {
+            const state = frameData.nodeTimings[n.id];
             if (state) {
-              topLabel = `[ES:${state.earliestStart.toFixed(0)}, LF:${state.latestFinish.toFixed(0)}]`;
-              topLabelColor = state.critical ? '#fbbf24' : '#93c5fd';
+              const ic = state.earliestStart !== null ? state.earliestStart.toFixed(2) : '-';
+              const tc = state.earliestFinish !== null ? state.earliestFinish.toFixed(2) : '-';
+              const il = state.latestStart !== null ? state.latestStart.toFixed(2) : '-';
+              const tl = state.latestFinish !== null ? state.latestFinish.toFixed(2) : '-';
+              
+              topLabel = `${ic} / ${tc}`;
+              topLabelColor = state.earliestStart !== null ? '#6ee7b7' : '#4b5563';
+              
+              bottomLabel = `${il} / ${tl}`;
+              bottomLabelColor = state.latestStart !== null ? '#f87171' : '#4b5563';
 
-              if (!active && state.critical) {
-                bg = '#f59e0b'; border = '#fbbf24';
-              } else if (!active && state.slack === 0) {
-                bg = '#1d4ed8'; border = '#60a5fa';
+              if (state.slack !== null) {
+                sideLabel = `H: ${state.slack.toFixed(0)}`;
+              }
+
+              if (!active && state.slack !== null && state.slack < 0.0001) {
+                bg = '#facc15'; border = '#ca8a04'; // Amarillo para holgura = 0
+              } else if (!active && state.critical) {
+                bg = '#facc15'; border = '#ca8a04'; 
               }
             }
           }
 
           return (
             <g key={n.id}>
-              <circle cx={p.x} cy={p.y} r="18" fill={bg} stroke={border} strokeWidth="3" />
-              <text x={p.x} y={p.y + 5} fill="#ffffff" fontSize="14" textAnchor="middle" fontWeight="bold">
+              { (selectedMethod === 'cpm' || selectedMethod === 'pert') ? (
+                <rect x={p.x - 22} y={p.y - 15} width="44" height="30" fill={bg} stroke={border} strokeWidth="3" rx="4" />
+              ) : (
+                <circle cx={p.x} cy={p.y} r="18" fill={bg} stroke={border} strokeWidth="3" />
+              )}
+              <text x={p.x} y={p.y + 5} fill={(selectedMethod === 'cpm' || selectedMethod === 'pert') && bg === '#facc15' ? '#000000' : '#ffffff'} fontSize="14" textAnchor="middle" fontWeight="bold">
                 {n.id}
               </text>
               {topLabel && (
-                <text x={p.x} y={p.y - 25} fill={topLabelColor} fontSize="12" textAnchor="middle" fontWeight="bold">
+                <text x={p.x} y={p.y - ((selectedMethod === 'cpm' || selectedMethod === 'pert') ? 22 : 25)} fill={topLabelColor} fontSize="12" textAnchor="middle" fontWeight="bold">
                   {topLabel}
+                </text>
+              )}
+              {bottomLabel && (
+                <text x={p.x} y={p.y + 30} fill={bottomLabelColor} fontSize="12" textAnchor="middle" fontWeight="bold">
+                  {bottomLabel}
+                </text>
+              )}
+              {sideLabel && (
+                <text x={p.x + 30} y={p.y + 4} fill="#a78bfa" fontSize="12" textAnchor="start" fontWeight="bold">
+                  {sideLabel}
                 </text>
               )}
             </g>
           );
         })}
       </svg>
+    );
+  };
+
+  const renderPertTable = () => {
+    if (selectedMethod !== 'pert' || !frameData || !frameData.expectedTimes) return null;
+    const times = frameData.expectedTimes;
+    if (Object.keys(times).length === 0) return null;
+    
+    return (
+      <div style={{ position: 'absolute', bottom: '15px', left: '15px', background: 'rgba(15, 23, 42, 0.85)', padding: '10px 15px', borderRadius: '8px', border: '1px solid #334155', color: '#e2e8f0', fontSize: '0.85rem', backdropFilter: 'blur(10px)', zIndex: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+          <h4 style={{ margin: '0', color: '#94a3b8' }}>Estimaciones PERT</h4>
+          <button 
+            onClick={() => setIsTableExpanded(!isTableExpanded)} 
+            style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '0.8rem', padding: '0' }}>
+            {isTableExpanded ? '[Ocultar]' : '[Mostrar]'}
+          </button>
+        </div>
+        {isTableExpanded && (
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '250px', marginTop: '8px' }}>
+          <thead>
+            <tr>
+              <th style={{ padding: '4px 8px', borderBottom: '1px solid #334155', textAlign: 'left' }}>Actividad</th>
+              <th style={{ padding: '4px 8px', borderBottom: '1px solid #334155', textAlign: 'center' }}>a</th>
+              <th style={{ padding: '4px 8px', borderBottom: '1px solid #334155', textAlign: 'center' }}>m</th>
+              <th style={{ padding: '4px 8px', borderBottom: '1px solid #334155', textAlign: 'center' }}>b</th>
+              <th style={{ padding: '4px 8px', borderBottom: '1px solid #334155', textAlign: 'center' }}>T</th>
+              <th style={{ padding: '4px 8px', borderBottom: '1px solid #334155', textAlign: 'center' }}>σ² (Var)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(times).map(id => {
+              if(id === 'Inicio' || id === 'Fin') return null;
+              const {a, m, b, t, v} = times[id];
+              return (
+                <tr key={id}>
+                  <td style={{ padding: '4px 8px', borderBottom: '1px solid #1e293b' }}>{id}</td>
+                  <td style={{ padding: '4px 8px', borderBottom: '1px solid #1e293b', textAlign: 'center' }}>{a}</td>
+                  <td style={{ padding: '4px 8px', borderBottom: '1px solid #1e293b', textAlign: 'center' }}>{m}</td>
+                  <td style={{ padding: '4px 8px', borderBottom: '1px solid #1e293b', textAlign: 'center' }}>{b}</td>
+                  <td style={{ padding: '4px 8px', borderBottom: '1px solid #1e293b', textAlign: 'center', fontWeight: 'bold', color: '#38bdf8' }}>{t !== undefined ? t.toFixed(2) : '-'}</td>
+                  <td style={{ padding: '4px 8px', borderBottom: '1px solid #1e293b', textAlign: 'center', color: '#a78bfa' }}>{v !== undefined ? v.toFixed(3) : '-'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        )}
+      </div>
     );
   };
 
@@ -364,8 +443,9 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
               </div>
             )}
 
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
               {renderGraph()}
+              {renderPertTable()}
             </div>
             
             {/* Legend */}
@@ -406,7 +486,7 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
               )}
               {(selectedMethod === 'cpm' || selectedMethod === 'pert') && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b' }}></div> Ruta Crítica
+                  <div style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#facc15' }}></div> Crítica (Holgura=0)
                 </div>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>

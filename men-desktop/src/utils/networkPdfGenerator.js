@@ -128,11 +128,11 @@ function drawGraph(doc, exercise, frameData, method, startY) {
          if (state.status === 'C') bg = [5, 150, 105];
          else bg = [55, 65, 81];
       }
-    } else if ((method === 'CPM' || method === 'PERT') && frameData && frameData.nodeStates) {
-      const state = frameData.nodeStates[n.id];
+    } else if ((method === 'CPM' || method === 'PERT') && frameData && frameData.nodeTimings) {
+      const state = frameData.nodeTimings[n.id];
       if (state && !active) {
         if (state.critical) bg = [245, 158, 11];
-        else if (state.slack === 0) bg = [59, 130, 246];
+        else if (state.slack !== null && state.slack < 0.0001) bg = [245, 158, 11];
         else bg = [55, 65, 81];
       }
     }
@@ -142,14 +142,21 @@ function drawGraph(doc, exercise, frameData, method, startY) {
     const nr = 18 * scale;
     
     doc.setFillColor(...bg);
-    doc.circle(nx, ny, nr, 'F');
+    if (method === 'CPM' || method === 'PERT') {
+       doc.rect(nx - nr*1.2, ny - nr*0.8, nr*2.4, nr*1.6, 'F');
+    } else {
+       doc.circle(nx, ny, nr, 'F');
+    }
     
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
     doc.text(n.id, nx, ny + 1, { align: 'center', baseline: 'middle' });
     
-    // Etiqueta superior
+    // Etiqueta superior, inferior y lateral
     let topLabel = '';
+    let bottomLabel = '';
+    let sideLabel = '';
+    
     if (method === 'Dijkstra' && frameData && frameData.nodeStates) {
       const state = frameData.nodeStates[n.id];
       if (state && state.status !== 'none') {
@@ -158,15 +165,35 @@ function drawGraph(doc, exercise, frameData, method, startY) {
     } else if (method === 'Kruskal' && frameData && frameData.nodeStates) {
       const state = frameData.nodeStates[n.id];
       if (state) topLabel = state.status === 'C' ? '[C]' : "[C']";
-    } else if ((method === 'CPM' || method === 'PERT') && frameData && frameData.nodeStates) {
-      const state = frameData.nodeStates[n.id];
-      if (state) topLabel = `[ES:${state.earliestStart.toFixed(0)}, LF:${state.latestFinish.toFixed(0)}]`;
+    } else if ((method === 'CPM' || method === 'PERT') && frameData && frameData.nodeTimings) {
+      const state = frameData.nodeTimings[n.id];
+      if (state) {
+        const ic = state.earliestStart !== null ? state.earliestStart.toFixed(2) : '-';
+        const tc = state.earliestFinish !== null ? state.earliestFinish.toFixed(2) : '-';
+        const il = state.latestStart !== null ? state.latestStart.toFixed(2) : '-';
+        const tl = state.latestFinish !== null ? state.latestFinish.toFixed(2) : '-';
+        topLabel = `${ic} / ${tc}`;
+        bottomLabel = `${il} / ${tl}`;
+        if (state.slack !== null) {
+          sideLabel = `H: ${state.slack.toFixed(0)}`;
+        }
+      }
     }
     
     if (topLabel) {
       doc.setFontSize(7);
       doc.setTextColor(15, 23, 42);
       doc.text(topLabel, nx, ny - nr - 1, { align: 'center' });
+    }
+    if (bottomLabel) {
+      doc.setFontSize(7);
+      doc.setTextColor(15, 23, 42);
+      doc.text(bottomLabel, nx, ny + nr + 3, { align: 'center' });
+    }
+    if (sideLabel) {
+      doc.setFontSize(7);
+      doc.setTextColor(107, 33, 168);
+      doc.text(sideLabel, nx + nr + 2, ny, { align: 'left', baseline: 'middle' });
     }
   });
 
