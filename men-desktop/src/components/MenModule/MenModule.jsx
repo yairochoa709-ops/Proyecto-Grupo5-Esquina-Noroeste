@@ -427,8 +427,8 @@ function MenModule() {
               )}
             </div>
 
-            {selectedExercise.statement && (
-              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid var(--primary)' }}>
+            {selectedExercise.statement && !currentSolution && (
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '10px 15px', borderRadius: '8px', marginBottom: '10px', borderLeft: '4px solid var(--primary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 'bold', color: 'var(--text)' }}>Contexto del Problema</span>
                   <button 
@@ -440,7 +440,7 @@ function MenModule() {
                   </button>
                 </div>
                 {showStatement && (
-                  <div style={{ marginTop: '12px', lineHeight: '1.5', fontStyle: 'italic', color: 'var(--text-muted)' }}>
+                  <div style={{ marginTop: '10px', lineHeight: '1.4', fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                     {selectedExercise.statement}
                   </div>
                 )}
@@ -448,29 +448,35 @@ function MenModule() {
             )}
 
             {currentSolution && frameData && (
-              <div className="player-controls glass-panel" style={{ padding: '15px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <button 
-                    className="btn" 
-                    disabled={activeFrame === 0} 
-                    onClick={() => updateActiveFrame(c => c - 1)}
-                  >
-                    ◀ Paso Anterior
-                  </button>
-                  <span style={{ fontWeight: '600' }}>Paso {activeFrame} de {currentSolution.frames.length - 1}</span>
-                  <button 
-                    className="btn" 
-                    disabled={activeFrame === currentSolution.frames.length - 1} 
-                    onClick={() => updateActiveFrame(c => c + 1)}
-                  >
-                    Siguiente Paso ▶
-                  </button>
-                </div>
-                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '8px', borderLeft: '4px solid var(--primary)', fontSize: '1.05rem', lineHeight: '1.5' }}>
-                  {frameData.narrative}
+              <div className="player-controls glass-panel" style={{ padding: '10px 15px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                    <button 
+                      className="btn" 
+                      style={{ padding: '6px 12px' }}
+                      disabled={activeFrame === 0} 
+                      onClick={() => updateActiveFrame(c => c - 1)}
+                    >
+                      ◀ Ant.
+                    </button>
+                    <span style={{ fontWeight: '600', fontSize: '0.9rem', width: '80px', textAlign: 'center' }}>
+                      Paso {activeFrame}/{currentSolution.frames.length - 1}
+                    </span>
+                    <button 
+                      className="btn" 
+                      style={{ padding: '6px 12px' }}
+                      disabled={activeFrame === currentSolution.frames.length - 1} 
+                      onClick={() => updateActiveFrame(c => c + 1)}
+                    >
+                      Sig. ▶
+                    </button>
+                  </div>
+                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '6px', borderLeft: '4px solid var(--primary)', fontSize: '0.95rem', lineHeight: '1.4' }}>
+                    {frameData.narrative}
+                  </div>
                 </div>
                 {activeFrame === currentSolution.frames.length - 1 && (
-                  <div style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold', fontSize: '1.2rem', marginTop: '10px' }}>
+                  <div style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold', fontSize: '1rem' }}>
                     ¡Solución Completada! Costo Total de Transporte: ${currentSolution.totalCost}
                   </div>
                 )}

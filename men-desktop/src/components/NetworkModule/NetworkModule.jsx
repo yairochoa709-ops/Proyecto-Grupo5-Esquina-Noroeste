@@ -65,11 +65,11 @@ export default function NetworkModule() {
     if (!selectedExercise) return null;
     
     const { nodes, edges } = selectedExercise;
-    const width = 600;
+    const width = 800;
     const height = 400;
     const centerX = width / 2;
     const centerY = height / 2;
-    const radius = 150;
+    const radius = 280;
     
     // Sort nodes to put Source at left, Sink at right
     const sortedNodes = [...nodes];
@@ -78,15 +78,15 @@ export default function NetworkModule() {
     const middleNodes = sortedNodes.filter(n => n.id !== selectedExercise.source && n.id !== selectedExercise.sink);
     
     const nodePositions = {};
-    if (sourceNode) nodePositions[sourceNode.id] = { x: 50, y: centerY };
-    if (sinkNode) nodePositions[sinkNode.id] = { x: width - 50, y: centerY };
+    if (sourceNode) nodePositions[sourceNode.id] = { x: 60, y: centerY };
+    if (sinkNode) nodePositions[sinkNode.id] = { x: width - 60, y: centerY };
     
     middleNodes.forEach((n, i) => {
-      // distribute middle nodes in an arc/circle
+      // distribute middle nodes in an ellipse to use horizontal space efficiently
       const angle = -Math.PI / 2 + (Math.PI / (middleNodes.length + 1)) * (i + 1);
       nodePositions[n.id] = {
-        x: centerX + (radius * 0.8) * Math.sin(angle),
-        y: centerY + radius * Math.cos(angle) * (i % 2 === 0 ? 1 : -1)
+        x: centerX + (radius * 0.9) * Math.sin(angle),
+        y: centerY + (radius * 0.55) * Math.cos(angle) * (i % 2 === 0 ? 1 : -1)
       };
     });
 
@@ -98,13 +98,16 @@ export default function NetworkModule() {
     const isEdgeInMST = (id) => frameData && frameData.mstEdges && frameData.mstEdges.includes(id);
 
     return (
-      <svg width="100%" height={height} style={{ background: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}>
+      <svg viewBox="0 0 800 400" style={{ width: '100%', height: '100%', minHeight: '200px', background: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}>
         <defs>
           <marker id="arrow" markerWidth="10" markerHeight="10" refX="28" refY="5" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af" />
           </marker>
           <marker id="arrow-active" markerWidth="10" markerHeight="10" refX="28" refY="5" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#f97316" />
+          </marker>
+          <marker id="arrow-blocked" markerWidth="10" markerHeight="10" refX="28" refY="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#000000" />
           </marker>
         </defs>
 
@@ -115,9 +118,9 @@ export default function NetworkModule() {
           if (!p1 || !p2) return null;
           
           const active = isEdgeActive(e.id) || isEdgeInMST(e.id);
-          const strokeColor = active ? '#f97316' : '#4b5563';
-          const strokeWidth = active ? 4 : 2;
-          const marker = selectedMethod === 'kruskal' ? null : (active ? 'url(#arrow-active)' : 'url(#arrow)');
+          let strokeColor = active ? '#f97316' : '#4b5563';
+          let strokeWidth = active ? 4 : 2;
+          let marker = selectedMethod === 'kruskal' ? null : (active ? 'url(#arrow-active)' : 'url(#arrow)');
 
           // Label placement
           const midX = (p1.x + p2.x) / 2;
@@ -127,8 +130,13 @@ export default function NetworkModule() {
           if (selectedMethod === 'dijkstra') label = `C: ${e.cost}`;
           else if (selectedMethod === 'kruskal') label = `C: ${e.cost}`;
           else if (selectedMethod === 'ford-fulkerson') {
-            const currentFlow = frameData && frameData.flow ? frameData.flow[`${e.from}-${e.to}`] : 0;
-            label = `${currentFlow}/${e.capacity}`;
+            const capDisp = frameData && frameData.availableCap !== undefined ? frameData.availableCap[e.id] : e.capacity;
+            label = `Disp: ${capDisp}`;
+            if (capDisp === 0) {
+              strokeColor = '#000000'; // Bloqueada
+              strokeWidth = 3;
+              marker = 'url(#arrow-blocked)';
+            }
           }
 
           return (
@@ -168,7 +176,39 @@ export default function NetworkModule() {
           }
 
           let topLabel = '';
-          if (selectedMethod === 'dijkstra' && frameData && frameData.distances) {
+          let topLabelColor = '#93c5fd';
+          
+          if (selectedMethod === 'dijkstra' && frameData && frameData.nodeStates) {
+            const state = frameData.nodeStates[n.id];
+            if (state && state.status !== 'none') {
+               const isPerm = state.status === 'permanente';
+               topLabel = `[${isPerm ? 'Perm' : 'Temp'}: ${state.value}]`;
+               topLabelColor = isPerm ? '#6ee7b7' : '#fcd34d'; // Verde o Amarillo claro
+               
+               if (!active && n.id !== selectedExercise.source && n.id !== selectedExercise.sink) {
+                   if (isPerm) {
+                       bg = '#059669'; border = '#10b981'; // Verde para Permanente
+                   } else {
+                       bg = '#b45309'; border = '#f59e0b'; // Naranja/Ambar para Temporal
+                   }
+               }
+            }
+          } else if (selectedMethod === 'kruskal' && frameData && frameData.nodeStates) {
+            const state = frameData.nodeStates[n.id];
+            if (state) {
+               const isC = state.status === 'C';
+               topLabel = isC ? '[C]' : "[C']";
+               topLabelColor = isC ? '#6ee7b7' : '#9ca3af'; 
+               
+               if (!active) {
+                   if (isC) {
+                       bg = '#059669'; border = '#10b981'; // Verde para C
+                   } else {
+                       bg = '#374151'; border = '#6b7280'; // Gris para C'
+                   }
+               }
+            }
+          } else if (selectedMethod === 'dijkstra' && frameData && frameData.distances) {
             const d = frameData.distances[n.id];
             topLabel = `d: ${d === Infinity ? '∞' : d}`;
           }
@@ -180,7 +220,7 @@ export default function NetworkModule() {
                 {n.id}
               </text>
               {topLabel && (
-                <text x={p.x} y={p.y - 25} fill="#93c5fd" fontSize="12" textAnchor="middle" fontWeight="bold">
+                <text x={p.x} y={p.y - 25} fill={topLabelColor} fontSize="12" textAnchor="middle" fontWeight="bold">
                   {topLabel}
                 </text>
               )}
@@ -235,17 +275,19 @@ export default function NetworkModule() {
         </div>
       </aside>
 
-      <main className="main-content glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
+      <main className="main-content glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {selectedExercise ? (
           <>
             <div className="header-actions">
               <div>
                 <h2 style={{ margin: 0 }}>{selectedExercise.name}</h2>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '5px' }}>
-                  {selectedMethod === 'dijkstra' && 'Buscando la ruta más corta desde Origen (S) a Destino (T).'}
-                  {selectedMethod === 'kruskal' && 'Conectando todos los nodos con el menor costo posible.'}
-                  {selectedMethod === 'ford-fulkerson' && 'Calculando el flujo máximo desde Origen (S) a Destino (T).'}
-                </div>
+                {!currentSolution && (
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '5px' }}>
+                    {selectedMethod === 'dijkstra' && 'Buscando la ruta más corta desde Origen (S) a Destino (T).'}
+                    {selectedMethod === 'kruskal' && 'Conectando todos los nodos con el menor costo posible.'}
+                    {selectedMethod === 'ford-fulkerson' && 'Calculando el flujo máximo desde Origen (S) a Destino (T).'}
+                  </div>
+                )}
               </div>
               {currentSolution ? (
                 <button className="btn" style={{ background: '#8b5cf6' }} onClick={handleExportPDF}>
@@ -259,7 +301,7 @@ export default function NetworkModule() {
             </div>
 
             {currentSolution && frameData && (
-              <div className="player-controls glass-panel" style={{ padding: '15px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div className="player-controls glass-panel" style={{ padding: '10px 15px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <button 
                     className="btn" 
@@ -277,29 +319,54 @@ export default function NetworkModule() {
                     Siguiente Paso ▶
                   </button>
                 </div>
-                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '8px', borderLeft: '4px solid var(--primary)', fontSize: '1.05rem', lineHeight: '1.5' }}>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 15px', borderRadius: '8px', borderLeft: '4px solid var(--primary)', fontSize: '0.95rem', lineHeight: '1.4' }}>
                   {frameData.narrative}
                 </div>
               </div>
             )}
 
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {renderGraph()}
             </div>
             
             {/* Legend */}
-            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '20px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '10px', fontSize: '0.8rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#2563eb' }}></div> Origen
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#7c3aed' }}></div> Destino
               </div>
+              {selectedMethod === 'kruskal' ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#059669' }}></div> C (Conectados)
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#374151', border: '1px solid #6b7280' }}></div> C' (Pendientes)
+                  </div>
+                </>
+              ) : selectedMethod === 'dijkstra' ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#059669' }}></div> Permanente
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#b45309' }}></div> Temporal
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#059669' }}></div> Visitado / Óptimo
+                </div>
+              )}
+              {selectedMethod === 'ford-fulkerson' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#000000' }}></div> Bloqueado
+                </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#059669' }}></div> Visitado / Óptimo
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ea580c' }}></div> Analizando
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ea580c' }}></div> Analizando / Óptimo
               </div>
             </div>
           </>

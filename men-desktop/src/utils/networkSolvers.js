@@ -9,145 +9,167 @@ export function solveDijkstra(exercise) {
   const { nodes, edges, source, sink } = exercise;
   const frames = [];
   
-  const dist = {};
-  const prev = {};
-  const unvisited = new Set(nodes.map(n => n.id));
+  // Estado de los nodos
+  const nodeStates = {}; 
   
   nodes.forEach(n => {
-    dist[n.id] = Infinity;
-    prev[n.id] = null;
+    nodeStates[n.id] = { status: 'none', value: Infinity, predecessor: null };
   });
-  dist[source] = 0;
+
+  // Paso 1: Nodo Origen
+  nodeStates[source] = { status: 'permanente', value: 0, predecessor: null };
 
   let baseState = {
-    narrative: 'Inicialización: Distancia al origen (S) es 0, y a los demás nodos es infinito (∞).',
-    distances: { ...dist },
-    visitedNodes: [],
-    activeNode: null,
+    narrative: `Paso 1: El nodo origen (${source}) recibe un valor de 0 y es clasificado inmediatamente como Permanente.`,
+    nodeStates: JSON.parse(JSON.stringify(nodeStates)),
+    activeNode: source,
     activeEdges: [],
     path: []
   };
   
   frames.push(createFrame(baseState, {}));
 
-  const visitedList = [];
+  let lastPermanente = source;
 
-  while (unvisited.size > 0) {
-    // Find node with minimum distance
-    let u = null;
-    let minDist = Infinity;
-    for (let nodeId of unvisited) {
-      if (dist[nodeId] < minDist) {
-        minDist = dist[nodeId];
-        u = nodeId;
-      }
-    }
-
-    if (u === null) break; // All remaining vertices are inaccessible
-    if (u === sink) {
-      visitedList.push(u);
-      baseState.visitedNodes = [...visitedList];
+  while (true) {
+    if (lastPermanente === sink) {
       frames.push(createFrame(baseState, {
-        narrative: `¡Hemos llegado al nodo destino (${sink}) con una distancia mínima de ${dist[sink]}! Terminamos la búsqueda.`,
-        activeNode: u
+        narrative: `¡El nodo destino (${sink}) ha sido clasificado como Permanente! Terminamos la búsqueda.`,
+        activeNode: sink,
+        activeEdges: []
       }));
       break;
     }
 
-    unvisited.delete(u);
-    visitedList.push(u);
-    baseState.visitedNodes = [...visitedList];
-
-    frames.push(createFrame(baseState, {
-      narrative: `Visitando nodo ${u}. Distancia actual: ${dist[u]}. Buscando vecinos no visitados.`,
-      activeNode: u
-    }));
-
-    const neighbors = edges.filter(e => e.from === u && unvisited.has(e.to));
+    // Paso 2: Cálculo de Temporales
+    const neighbors = edges.filter(e => e.from === lastPermanente && nodeStates[e.to].status !== 'permanente');
     
     if (neighbors.length > 0) {
       for (let edge of neighbors) {
         const v = edge.to;
-        const alt = dist[u] + edge.cost;
-        let narrative = `Evaluando arista ${u} -> ${v} (costo ${edge.cost}). `;
+        const currentPermanenteValue = nodeStates[lastPermanente].value;
+        const edgeCost = edge.cost;
+        const sum = currentPermanenteValue + edgeCost;
         
-        if (alt < dist[v]) {
-          narrative += `Nueva distancia (${dist[u]} + ${edge.cost} = ${alt}) es menor que la actual (${dist[v] === Infinity ? '∞' : dist[v]}). Actualizando.`;
-          dist[v] = alt;
-          prev[v] = u;
+        let narrative = `Evaluando arista ${lastPermanente} -> ${v} (Costo: ${edgeCost}). Suma: ${currentPermanenteValue} + ${edgeCost} = ${sum}. `;
+        
+        const existingState = nodeStates[v];
+        if (existingState.status === 'none' || sum < existingState.value) {
+          narrative += existingState.status === 'none' 
+            ? `El nodo ${v} recibe su primer valor Temporal: ${sum}. Predecesor asignado: ${lastPermanente}.`
+            : `La nueva suma (${sum}) es menor que el valor Temporal actual (${existingState.value}). Se actualiza el Temporal a ${sum} y el predecesor cambia a ${lastPermanente}.`;
+            
+          nodeStates[v].status = 'temporal';
+          nodeStates[v].value = sum;
+          nodeStates[v].predecessor = lastPermanente;
         } else {
-          narrative += `La distancia alternativa (${alt}) no mejora la actual (${dist[v]}). No se actualiza.`;
+          narrative += `La nueva suma (${sum}) NO es menor que el valor Temporal actual (${existingState.value}). Se conserva el valor anterior.`;
         }
 
-        baseState.distances = { ...dist };
+        baseState.nodeStates = JSON.parse(JSON.stringify(nodeStates));
         frames.push(createFrame(baseState, {
           narrative,
-          activeNode: u,
+          activeNode: lastPermanente,
           activeEdges: [edge.id]
         }));
       }
     } else {
       frames.push(createFrame(baseState, {
-        narrative: `El nodo ${u} no tiene vecinos no visitados accesibles.`,
-        activeNode: u
+        narrative: `El nodo ${lastPermanente} no tiene vecinos que no sean Permanentes.`,
+        activeNode: lastPermanente,
+        activeEdges: []
       }));
     }
+
+    // Paso 3: Conversión a Permanente
+    let minNode = null;
+    let minValue = Infinity;
+    for (let nodeId in nodeStates) {
+      const state = nodeStates[nodeId];
+      if (state.status === 'temporal' && state.value < minValue) {
+        minValue = state.value;
+        minNode = nodeId;
+      }
+    }
+
+    if (minNode === null) {
+      frames.push(createFrame(baseState, {
+        narrative: `No quedan nodos temporales accesibles. No se puede llegar a todos los nodos restantes.`,
+        activeNode: null,
+        activeEdges: []
+      }));
+      break;
+    }
+
+    nodeStates[minNode].status = 'permanente';
+    lastPermanente = minNode;
+    baseState.nodeStates = JSON.parse(JSON.stringify(nodeStates));
+
+    frames.push(createFrame(baseState, {
+      narrative: `Paso 3: Seleccionamos el nodo Temporal con el menor valor de toda la red: el nodo ${minNode} (Valor Temporal: ${minValue}). Se fija como Permanente.`,
+      activeNode: minNode,
+      activeEdges: []
+    }));
   }
 
-  // Reconstruct path
+  // Trazado de ruta por predecesores
   const path = [];
+  const finalActiveEdges = [];
   let curr = sink;
-  if (prev[curr] !== null || curr === source) {
+  if (nodeStates[sink].status === 'permanente') {
     while (curr !== null) {
       path.unshift(curr);
-      curr = prev[curr];
+      const prev = nodeStates[curr].predecessor;
+      if (prev !== null) {
+        const edge = edges.find(e => e.from === prev && e.to === curr);
+        if (edge) finalActiveEdges.push(edge.id);
+      }
+      curr = prev;
     }
   }
 
+  const finalDist = nodeStates[sink].value;
+
   frames.push(createFrame(baseState, {
-    narrative: path.length > 0 ? `Ruta más corta encontrada: ${path.join(' -> ')} con costo total de ${dist[sink]}.` : `No existe ruta desde ${source} hasta ${sink}.`,
+    narrative: path.length > 0 
+      ? `Trazado de la ruta final: Retrocediendo desde el destino (${sink}) leyendo los nodos predecesores... Ruta óptima: ${path.join(' -> ')} con peso total de ${finalDist}.` 
+      : `No existe ruta desde ${source} hasta ${sink}.`,
     activeNode: null,
-    activeEdges: [],
+    activeEdges: finalActiveEdges,
     path
   }));
 
-  return { method: 'Dijkstra', frames, finalDistance: dist[sink], path };
+  return { method: 'Dijkstra', frames, finalDistance: finalDist, path, finalStates: nodeStates };
 }
 
-// 2. Algoritmo de Kruskal (Árbol de Expansión Mínima)
-class UnionFind {
-  constructor(elements) {
-    this.parent = {};
-    elements.forEach(e => (this.parent[e] = e));
-  }
-  find(a) {
-    if (this.parent[a] === a) return a;
-    return this.parent[a] = this.find(this.parent[a]);
-  }
-  union(a, b) {
-    const rootA = this.find(a);
-    const rootB = this.find(b);
-    if (rootA !== rootB) {
-      this.parent[rootA] = rootB;
-      return true;
-    }
-    return false;
-  }
-}
-
+// 2. Algoritmo de Árbol de Expansión Mínima (Lógica de Prim solicitada: Conjuntos C y C')
 export function solveKruskal(exercise) {
   const { nodes, edges } = exercise;
   const frames = [];
   
-  // Treat as undirected, remove duplicate edges if any, sort by cost
-  const sortedEdges = [...edges].sort((a, b) => a.cost - b.cost);
-  const uf = new UnionFind(nodes.map(n => n.id));
+  // Inicialización de Conjuntos C y C'
+  const C = new Set();
+  const C_prime = new Set(nodes.map(n => n.id));
   
+  // Paso 1: Elegir el primer nodo
+  const initialNode = nodes[0].id;
+  C.add(initialNode);
+  C_prime.delete(initialNode);
+
   const mstEdges = [];
   let totalCost = 0;
 
+  const getNodeStates = () => {
+    const states = {};
+    nodes.forEach(n => {
+      states[n.id] = { status: C.has(n.id) ? 'C' : 'C_prime' };
+    });
+    return states;
+  };
+
   let baseState = {
-    narrative: 'Inicialización: Ordenamos todas las aristas de menor a mayor costo.',
+    narrative: `Iteración 1: Iniciamos colocando el primer nodo (${initialNode}) en el conjunto C (Conectados). Los demás nodos van al conjunto C' (No conectados).`,
+    nodeStates: getNodeStates(),
     mstEdges: [],
     activeEdges: [],
     totalCost: 0
@@ -155,49 +177,78 @@ export function solveKruskal(exercise) {
 
   frames.push(createFrame(baseState, {}));
 
-  for (let edge of sortedEdges) {
-    let narrative = `Evaluando arista ${edge.from} - ${edge.to} (costo: ${edge.cost}). `;
-    
-    if (uf.union(edge.from, edge.to)) {
-      mstEdges.push(edge.id);
-      totalCost += edge.cost;
-      narrative += `No forma ciclo. Se agrega al Árbol de Expansión Mínima. Costo acumulado: ${totalCost}.`;
-      baseState.mstEdges = [...mstEdges];
-      baseState.totalCost = totalCost;
-    } else {
-      narrative += `Forma un ciclo con las aristas actuales. Se descarta.`;
+  let iteration = 2;
+  while (C_prime.size > 0) {
+    // Paso 2 y 3: Búsqueda de Frontera y Selección del Menor
+    let minEdge = null;
+    let minCost = Infinity;
+    const frontierEdges = [];
+
+    for (let edge of edges) {
+      const inFromC = C.has(edge.from) && C_prime.has(edge.to);
+      const inToC = C.has(edge.to) && C_prime.has(edge.from);
+      
+      // La red es no dirigida para este algoritmo
+      if (inFromC || inToC) {
+        frontierEdges.push(edge);
+        if (edge.cost < minCost) {
+          minCost = edge.cost;
+          minEdge = edge; // Paso 4: Empates se resuelven arbitrariamente usando el primero menor que aparece (< y no <=)
+        }
+      }
     }
 
-    frames.push(createFrame(baseState, {
-      narrative,
-      activeEdges: [edge.id]
-    }));
-
-    if (mstEdges.length === nodes.length - 1) {
+    if (minEdge === null) {
       frames.push(createFrame(baseState, {
-        narrative: `Se han conectado todos los ${nodes.length} nodos con ${mstEdges.length} aristas. El Árbol de Expansión Mínima está completo.`,
+        narrative: `Iteración ${iteration}: No hay arcos que conecten C con C'. El grafo está desconectado.`,
         activeEdges: []
       }));
       break;
     }
+
+    const cNode = C.has(minEdge.from) ? minEdge.from : minEdge.to;
+    const cPrimeNode = C.has(minEdge.from) ? minEdge.to : minEdge.from;
+
+    frames.push(createFrame(baseState, {
+      narrative: `Iteración ${iteration} (Frontera): Evaluando los ${frontierEdges.length} arcos que conectan C con C'. El arco con la longitud menor es ${cNode} - ${cPrimeNode} (Costo: ${minCost}).`,
+      activeEdges: [minEdge.id]
+    }));
+
+    // Paso 5: Actualización de Estado
+    C.add(cPrimeNode);
+    C_prime.delete(cPrimeNode);
+    mstEdges.push(minEdge.id);
+    totalCost += minCost;
+
+    baseState.nodeStates = getNodeStates();
+    baseState.mstEdges = [...mstEdges];
+    baseState.totalCost = totalCost;
+
+    frames.push(createFrame(baseState, {
+      narrative: `Iteración ${iteration} (Transferencia): El nodo ${cPrimeNode} se mueve del conjunto C' al conjunto C. El arco se incluye en el Árbol de Expansión Mínima.`,
+      activeEdges: []
+    }));
+
+    iteration++;
   }
 
-  frames.push(createFrame(baseState, {
-    narrative: `Algoritmo finalizado. Costo total del Árbol de Expansión Mínima: ${totalCost}.`,
-    activeEdges: []
-  }));
+  if (C_prime.size === 0) {
+    frames.push(createFrame(baseState, {
+      narrative: `¡Condición de Detención alcanzada! El conjunto C' está vacío, indicando que el 100% de los nodos están conectados al árbol principal. La longitud total del árbol de expansión mínima es de ${totalCost}.`,
+      activeEdges: mstEdges // Resaltar todos al final
+    }));
+  }
 
-  return { method: 'Kruskal', frames, mstEdges, totalCost };
+  return { method: 'Kruskal', frames, mstEdges, totalCost, finalStates: getNodeStates() };
 }
 
-// 3. Algoritmo de Ford-Fulkerson (Flujo Máximo)
+// 3. Algoritmo de Flujo Máximo (Heurística Voraz - Ford-Fulkerson Video)
 export function solveFordFulkerson(exercise) {
   const { nodes, edges, source, sink } = exercise;
   const frames = [];
 
-  // Residual graph
-  const capacity = {};
-  const flow = {};
+  // Usamos un mapa para la capacidad residual/disponible.
+  const availableCap = {};
   const adj = {};
 
   nodes.forEach(n => {
@@ -205,19 +256,13 @@ export function solveFordFulkerson(exercise) {
   });
 
   edges.forEach(e => {
-    capacity[`${e.from}-${e.to}`] = e.capacity;
-    flow[`${e.from}-${e.to}`] = 0;
-    
-    capacity[`${e.to}-${e.from}`] = 0; // Reverse edge capacity is 0 initially
-    flow[`${e.to}-${e.from}`] = 0;
-    
-    adj[e.from].push(e.to);
-    adj[e.to].push(e.from);
+    availableCap[e.id] = e.capacity;
+    adj[e.from].push({ to: e.to, edgeId: e.id });
   });
 
   let baseState = {
-    narrative: 'Inicialización: Todo el flujo inicial es 0.',
-    flow: { ...flow },
+    narrative: `Inicialización: Las capacidades iniciales de los arcos están intactas. Comenzamos en la Fuente (${source}).`,
+    availableCap: { ...availableCap },
     activeEdges: [],
     path: [],
     maxFlow: 0
@@ -226,86 +271,93 @@ export function solveFordFulkerson(exercise) {
   frames.push(createFrame(baseState, {}));
 
   let maxFlow = 0;
+  let iteration = 1;
 
-  function bfs() {
-    const parent = {};
-    const visited = new Set([source]);
-    const queue = [source];
-
-    while (queue.length > 0) {
-      const u = queue.shift();
+  // Búsqueda Voraz (DFS priorizando mayor capacidad)
+  function findGreedyPath() {
+    const visited = new Set();
+    const path = []; // Arrays of { node, edgeId }
+    
+    function dfs(curr) {
+      if (curr === sink) return true;
+      visited.add(curr);
       
-      for (let v of adj[u]) {
-        if (!visited.has(v) && capacity[`${u}-${v}`] - flow[`${u}-${v}`] > 0) {
-          visited.add(v);
-          parent[v] = u;
-          queue.push(v);
-          if (v === sink) return parent;
-        }
+      // Ordenar las aristas de salida por mayor capacidad disponible (Heurística)
+      const neighbors = adj[curr]
+        .filter(n => !visited.has(n.to) && availableCap[n.edgeId] > 0)
+        .sort((a, b) => availableCap[b.edgeId] - availableCap[a.edgeId]);
+        
+      for (let neighbor of neighbors) {
+        path.push(neighbor);
+        if (dfs(neighbor.to)) return true;
+        path.pop(); // Backtrack
       }
+      return false;
     }
+    
+    if (dfs(source)) return path;
     return null;
   }
 
   while (true) {
-    const parent = bfs();
-    if (!parent) {
+    const greedyPath = findGreedyPath();
+    if (!greedyPath) {
+      const flowCarryingEdges = edges.filter(e => e.capacity - availableCap[e.id] > 0).map(e => e.id);
       frames.push(createFrame(baseState, {
-        narrative: `No se encontraron más rutas de aumento desde el Origen al Destino en el grafo residual. Algoritmo terminado.`,
-        activeEdges: [],
+        narrative: `Iteración ${iteration}: No se encontró ninguna trayectoria de aumento. Todas las rutas posibles hacia el Sumidero están bloqueadas. Fin del ciclo.`,
+        activeEdges: flowCarryingEdges,
         path: []
       }));
       break;
     }
 
-    // Find path capacity
-    let pathFlow = Infinity;
-    let curr = sink;
+    // Calcular el cuello de botella
+    let bottleneck = Infinity;
     const pathEdges = [];
-    const pathNodes = [sink];
+    const pathNodes = [source];
     
-    while (curr !== source) {
-      const p = parent[curr];
-      const resCap = capacity[`${p}-${curr}`] - flow[`${p}-${curr}`];
-      pathFlow = Math.min(pathFlow, resCap);
-      
-      // Find original edge id for visualization
-      const originalEdge = edges.find(e => (e.from === p && e.to === curr) || (e.from === curr && e.to === p));
-      if (originalEdge) pathEdges.push(originalEdge.id);
-      
-      curr = p;
-      pathNodes.unshift(curr);
-    }
+    greedyPath.forEach(step => {
+      bottleneck = Math.min(bottleneck, availableCap[step.edgeId]);
+      pathEdges.push(step.edgeId);
+      pathNodes.push(step.to);
+    });
 
     frames.push(createFrame(baseState, {
-      narrative: `Ruta de aumento encontrada: ${pathNodes.join(' -> ')}. La capacidad mínima en esta ruta (cuello de botella) es ${pathFlow}.`,
+      narrative: `Iteración ${iteration} (Búsqueda): Eligiendo siempre el arco con mayor capacidad disponible. Trayectoria: ${pathNodes.join(' -> ')}. \n(Cuello de Botella): El valor mínimo en esta ruta es ${bottleneck}.`,
       activeEdges: pathEdges,
       path: pathNodes
     }));
 
-    // Augment flow
-    curr = sink;
-    while (curr !== source) {
-      const p = parent[curr];
-      flow[`${p}-${curr}`] += pathFlow;
-      flow[`${curr}-${p}`] -= pathFlow;
-      curr = p;
-    }
+    // Actualización de capacidades
+    let narrativeUpdate = `Iteración ${iteration} (Actualización y Bloqueo): Simulando el envío de flujo. Se resta el cuello de botella (${bottleneck}) a la capacidad de los arcos usados. `;
+    let blockedFound = false;
 
-    maxFlow += pathFlow;
-    baseState.flow = { ...flow };
+    greedyPath.forEach(step => {
+      availableCap[step.edgeId] -= bottleneck;
+      if (availableCap[step.edgeId] === 0) {
+        narrativeUpdate += `El arco hacia ${step.to} queda bloqueado. `;
+        blockedFound = true;
+      }
+    });
+    
+    maxFlow += bottleneck;
+    narrativeUpdate += `Flujo total acumulado: ${maxFlow}.`;
+
+    baseState.availableCap = { ...availableCap };
     baseState.maxFlow = maxFlow;
 
     frames.push(createFrame(baseState, {
-      narrative: `Aumentando flujo por ${pathFlow} unidades. Flujo máximo actual acumulado: ${maxFlow}.`,
+      narrative: narrativeUpdate,
       activeEdges: pathEdges,
       path: pathNodes
     }));
+    
+    iteration++;
   }
 
   frames.push(createFrame(baseState, {
-    narrative: `¡Flujo máximo total alcanzado: ${maxFlow}!`,
-    activeEdges: [],
+    narrative: `¡Condición de Detención alcanzada! El Flujo Máximo de la red es: ${maxFlow}.`,
+    activeEdges: edges.filter(e => e.capacity - availableCap[e.id] > 0).map(e => e.id),
     path: []
   }));
 

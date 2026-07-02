@@ -50,17 +50,8 @@ export function generateNetworkExercise(id) {
     });
   }
 
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      if (Math.random() < 0.3) {
-        const u = nodes[i];
-        const v = nodes[j];
-        if (u.id !== 'T' && v.id !== 'S' && !edges.some(e => e.from === u.id && e.to === v.id)) {
-          addEdge(u.id, v.id);
-        }
-      }
-    }
-  }
+  // Se eliminó la inyección masiva de aristas aleatorias cruzadas
+  // para mantener el grafo legible y estructurado en capas.
 
   return {
     id: `net-${id || Date.now()}`,
