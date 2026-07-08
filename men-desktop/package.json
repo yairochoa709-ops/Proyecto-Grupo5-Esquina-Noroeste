@@ -2,7 +2,7 @@
   "name": "men-desktop",
   "private": true,
   "version": "1.0.0",
-  "description": "Solucionador del Método de la Esquina Noroeste",
+  "description": "Suite de Investigación de Operaciones",
   "author": "Proyecto Grupo 5",
   "main": "electron/main.cjs",
   "type": "module",
@@ -15,8 +15,8 @@
     "preview": "vite preview"
   },
   "build": {
-    "appId": "com.grupo5.mendesktop",
-    "productName": "Esquina Noroeste Solver",
+    "appId": "com.grupo5.operaciones",
+    "productName": "Suite de Investigacion de Operaciones",
     "directories": {
       "output": "dist-electron"
     },
@@ -35,10 +35,14 @@
     ]
   },
   "dependencies": {
+    "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "katex": "^0.17.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-katex": "^3.1.0",
+    "recharts": "^3.9.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

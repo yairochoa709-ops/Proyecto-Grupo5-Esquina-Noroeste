@@ -7,7 +7,7 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: "Esquina Noroeste Solver",
+    title: "Suite de Investigación de Operaciones",
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
