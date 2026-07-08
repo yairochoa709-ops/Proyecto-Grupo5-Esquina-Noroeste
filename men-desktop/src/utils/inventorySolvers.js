@@ -12,27 +12,27 @@ export function solveEOQ(D, Co, Ch) {
   const steps = [
     {
       title: "Paso 1: Cantidad Económica de Pedido (Q*)",
-      math: `Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h}} = \\sqrt{\\frac{2 \\cdot ${D} \\cdot ${Co}}{${Ch}}} = ${Q.toFixed(4)}`,
+      math: "Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h}} = \\sqrt{\\frac{2 \\cdot " + D + " \\cdot " + Co + "}{" + Ch + "}} = " + Q.toFixed(4),
       desc: "Representa el volumen ideal que debes ordenar cada vez para minimizar los costos de inventario."
     },
     {
       title: "Paso 2: Número de pedidos (N)",
-      math: `N = \\frac{D}{Q^*} = \\frac{${D}}{${Q.toFixed(4)}} = ${N.toFixed(4)}`,
+      math: "N = \\frac{D}{Q^*} = \\frac{" + D + "}{" + Q.toFixed(4) + "} = " + N.toFixed(4),
       desc: "La cantidad de veces al año que tendrás que hacer un nuevo pedido."
     },
     {
       title: "Paso 3: Tiempo entre pedidos (T años)",
-      math: `T = \\frac{Q^*}{D} = \\frac{${Q.toFixed(4)}}{${D}} = ${T_years.toFixed(4)}`,
+      math: "T = \\frac{Q^*}{D} = \\frac{" + Q.toFixed(4) + "}{" + D + "} = " + T_years.toFixed(4),
       desc: "El lapso de tiempo en años que dura un pedido en agotarse."
     },
     {
       title: "Paso 4: Tiempo entre pedidos (T días)",
-      math: `T_{dias} = T \\cdot 365 = ${T_years.toFixed(4)} \\cdot 365 = ${T_days.toFixed(4)}`,
+      math: "T_{dias} = T \\cdot 365 = " + T_years.toFixed(4) + " \\cdot 365 = " + T_days.toFixed(4),
       desc: "Expresa el lapso de tiempo anterior en un formato más comprensible (días)."
     },
     {
       title: "Paso 5: Costo Total (CT)",
-      math: `CT = \\left(\\frac{D}{Q^*}\\right)C_o + \\left(\\frac{Q^*}{2}\\right)C_h = ${CT.toFixed(4)}`,
+      math: "CT = \\left(\\frac{D}{Q^*}\\right)C_o + \\left(\\frac{Q^*}{2}\\right)C_h = " + CT.toFixed(4),
       desc: "El costo mínimo anualizado considerando ordenar y mantener el inventario."
     }
   ];
@@ -59,42 +59,42 @@ export function solveEOQBackorders(D, Co, Ch, Cf) {
   const steps = [
     {
       title: "Paso 1: Factor de penalización",
-      math: `\\text{Factor} = \\frac{C_h + C_f}{C_f} = \\frac{${Ch} + ${Cf}}{${Cf}} = ${((Ch + Cf) / Cf).toFixed(4)}`,
+      math: "\\text{Factor} = \\frac{C_h + C_f}{C_f} = \\frac{" + Ch + " + " + Cf + "}{" + Cf + "} = " + ((Ch + Cf) / Cf).toFixed(4),
       desc: "Relación entre el costo de mantener inventario y el costo de penalización por faltantes."
     },
     {
       title: "Paso 2: Cantidad de Pedido (Q*)",
-      math: `Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h} \\cdot \\text{Factor}} = ${Q.toFixed(4)}`,
+      math: "Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h} \\cdot \\text{Factor}} = " + Q.toFixed(4),
       desc: "Volumen ideal a ordenar compensando los costos de mantener con las multas de faltantes permitidos."
     },
     {
       title: "Paso 3: Faltante Máximo Permitido (S*)",
-      math: `S^* = Q^* \\cdot \\left(\\frac{C_h}{C_h + C_f}\\right) = ${S.toFixed(4)}`,
+      math: "S^* = Q^* \\cdot \\left(\\frac{C_h}{C_h + C_f}\\right) = " + S.toFixed(4),
       desc: "Máxima cantidad de unidades que la empresa se permitirá no tener en stock intencionalmente antes de resurtir."
     },
     {
       title: "Paso 4: Inventario Máximo (Imax)",
-      math: `I_{max} = Q^* - S^* = ${Q.toFixed(4)} - ${S.toFixed(4)} = ${Imax.toFixed(4)}`,
+      math: "I_{max} = Q^* - S^* = " + Q.toFixed(4) + " - " + S.toFixed(4) + " = " + Imax.toFixed(4),
       desc: "El nivel máximo de stock físico que se alcanzará en el almacén al recibir un pedido y saldar los faltantes."
     },
     {
       title: "Paso 5: Costo de Ordenar",
-      math: `\\text{Costo Ordenar} = \\left(\\frac{D}{Q^*}\\right) C_o = ${costOrdering.toFixed(4)}`,
+      math: "\\text{Costo Ordenar} = \\left(\\frac{D}{Q^*}\\right) C_o = " + costOrdering.toFixed(4),
       desc: "El gasto anual exclusivo de emitir órdenes de compra."
     },
     {
       title: "Paso 6: Costo de Mantener",
-      math: `\\text{Costo Mantener} = \\frac{(Q^* - S^*)^2}{2Q^*} \\cdot C_h = ${costHolding.toFixed(4)}`,
+      math: "\\text{Costo Mantener} = \\frac{(Q^* - S^*)^2}{2Q^*} \\cdot C_h = " + costHolding.toFixed(4),
       desc: "El gasto anual por tener unidades guardadas."
     },
     {
       title: "Paso 7: Costo de Faltantes",
-      math: `\\text{Costo Faltantes} = \\frac{(S^*)^2}{2Q^*} \\cdot C_f = ${costShortage.toFixed(4)}`,
+      math: "\\text{Costo Faltantes} = \\frac{(S^*)^2}{2Q^*} \\cdot C_f = " + costShortage.toFixed(4),
       desc: "El costo anual por multas o pérdidas de venta por no tener producto."
     },
     {
       title: "Paso 8: Sumar Costo Total (CT)",
-      math: `CT = ${costOrdering.toFixed(2)} + ${costHolding.toFixed(2)} + ${costShortage.toFixed(2)} = ${CT.toFixed(4)}`,
+      math: "CT = " + costOrdering.toFixed(2) + " + " + costHolding.toFixed(2) + " + " + costShortage.toFixed(2) + " = " + CT.toFixed(4),
       desc: "Costo mínimo total óptimo."
     }
   ];
@@ -122,32 +122,32 @@ export function solveEPQ(D, Co, Ch, p, d) {
   const steps = [
     {
       title: "Paso 1: Factor de utilización de producción",
-      math: `\\text{Factor} = 1 - \\frac{d}{p} = 1 - \\frac{${d}}{${p}} = ${(1 - (d / p)).toFixed(4)}`,
+      math: "\\text{Factor} = 1 - \\frac{d}{p} = 1 - \\frac{" + d + "}{" + p + "} = " + (1 - (d / p)).toFixed(4),
       desc: "Proporción del inventario que no se consume inmediatamente durante la producción."
     },
     {
       title: "Paso 2: Lote de Producción (Q*)",
-      math: `Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h \\cdot \\text{Factor}}} = ${Q.toFixed(4)}`,
+      math: "Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h \\cdot \\text{Factor}}} = " + Q.toFixed(4),
       desc: "Tamaño ideal de lote de fabricación para minimizar costos."
     },
     {
       title: "Paso 3: Inventario Máximo (Imax)",
-      math: `I_{max} = Q^* \\cdot \\text{Factor} = ${Q.toFixed(4)} \\cdot ${(1 - (d / p)).toFixed(4)} = ${Imax.toFixed(4)}`,
+      math: "I_{max} = Q^* \\cdot \\text{Factor} = " + Q.toFixed(4) + " \\cdot " + (1 - (d / p)).toFixed(4) + " = " + Imax.toFixed(4),
       desc: "Nivel más alto de stock que se acumulará antes de apagar las máquinas."
     },
     {
       title: "Paso 4: Duración de producción (tp)",
-      math: `t_p = \\frac{Q^*}{p} = \\frac{${Q.toFixed(4)}}{${p}} = ${tp.toFixed(4)}`,
+      math: "t_p = \\frac{Q^*}{p} = \\frac{" + Q.toFixed(4) + "}{" + p + "} = " + tp.toFixed(4),
       desc: "Tiempo activo de las máquinas en cada ciclo."
     },
     {
       title: "Paso 5: Número de corridas (N)",
-      math: `N = \\frac{D}{Q^*} = \\frac{${D}}{${Q.toFixed(4)}} = ${N.toFixed(4)}`,
+      math: "N = \\frac{D}{Q^*} = \\frac{" + D + "}{" + Q.toFixed(4) + "} = " + N.toFixed(4),
       desc: "Frecuencia de lotes al año."
     },
     {
       title: "Paso 6: Costo Total (CT)",
-      math: `CT = \\left(\\frac{D}{Q^*}\\right)C_o + \\left(\\frac{I_{max}}{2}\\right)C_h = ${CT.toFixed(4)}`,
+      math: "CT = \\left(\\frac{D}{Q^*}\\right)C_o + \\left(\\frac{I_{max}}{2}\\right)C_h = " + CT.toFixed(4),
       desc: "Costo de las configuraciones de máquina (setups) y almacenamiento de inventario."
     }
   ];
@@ -177,9 +177,6 @@ export function classifyABC(items) {
     let zone = 'C';
     if (accumulatedPercentage <= 80) zone = 'A';
     else if (accumulatedPercentage <= 95) zone = 'B';
-    
-    // Si justo el elemento pasa el 80% y antes estaba por debajo, entra en A (criterio estándar más inclusivo).
-    // Para simplificar usamos un límite rígido.
 
     return {
       ...item,
@@ -196,28 +193,28 @@ export function classifyABC(items) {
   const steps = [
     {
       title: "Paso 1: Calcular VMA individual",
-      math: `\\text{VMA} = D \\cdot C`,
-      desc: `Se multiplicó la Demanda por el Costo Unitario para determinar el Valor Monetario Anual de cada uno de los ${items.length} artículos.`
+      math: "\\text{VMA} = D \\cdot C",
+      desc: "Se multiplicó la Demanda por el Costo Unitario para determinar el Valor Monetario Anual de cada uno de los " + items.length + " artículos."
     },
     {
       title: "Paso 2: Calcular VMA Total",
-      math: `\\text{VMA}_{total} = \\sum \\text{VMA} = ${totalVMA.toFixed(2)}`,
-      desc: `Sumatoria total que representa el 100% de la inversión económica del almacén.`
+      math: "\\text{VMA}_{total} = \\sum \\text{VMA} = " + totalVMA.toFixed(2),
+      desc: "Sumatoria total que representa el 100% de la inversión económica del almacén."
     },
     {
       title: "Paso 3: Clasificación Zona A",
-      math: `\\text{Artículos A} \\le 80\\% \\text{ del } \\text{VMA}_{total}`,
-      desc: `Se asignó prioridad A a los productos de más impacto que concentran hasta ~80% de los costos.`
+      math: "\\text{Artículos A} \\le 80\\% \\text{ del } \\text{VMA}_{total}",
+      desc: "Se asignó prioridad A a los productos de más impacto que concentran hasta ~80% de los costos."
     },
     {
       title: "Paso 4: Clasificación Zona B",
-      math: `80\\% < \\text{Artículos B} \\le 95\\%`,
-      desc: `Los artículos con impacto intermedio conforman la zona B.`
+      math: "80\\% < \\text{Artículos B} \\le 95\\%",
+      desc: "Los artículos con impacto intermedio conforman la zona B."
     },
     {
       title: "Paso 5: Clasificación Zona C",
-      math: `\\text{Artículos C} > 95\\%`,
-      desc: `El resto de los artículos, generalmente gran volumen pero bajísimo costo, caen en C.`
+      math: "\\text{Artículos C} > 95\\%",
+      desc: "El resto de los artículos, generalmente gran volumen pero bajísimo costo, caen en C."
     }
   ];
 

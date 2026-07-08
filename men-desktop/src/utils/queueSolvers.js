@@ -6,6 +6,16 @@ function factorial(n) {
   return f;
 }
 
+// Helper para construir strings LaTeX seguros que el bundler no puede corromper
+function tex(strings, ...vals) {
+  let result = '';
+  strings.forEach((str, i) => {
+    result += str;
+    if (i < vals.length) result += vals[i];
+  });
+  return result;
+}
+
 export function solveMM1(lambda, mu) {
   if (lambda >= mu) {
     throw new Error('El sistema es inestable (λ >= μ). La cola crecerá infinitamente.');
@@ -21,32 +31,32 @@ export function solveMM1(lambda, mu) {
   const steps = [
     {
       title: "Paso 1: Factor de utilización (ρ)",
-      math: `\\rho = \\frac{\\lambda}{\\mu} = \\frac{${lambda}}{${mu}} = ${rho.toFixed(4)}`,
+      math: "\\rho = \\frac{\\lambda}{\\mu} = \\frac{" + lambda + "}{" + mu + "} = " + rho.toFixed(4),
       desc: "Calcula el porcentaje de tiempo que el servidor está ocupado. Debe ser menor a 1 para que el sistema sea estable."
     },
     {
       title: "Paso 2: Probabilidad de sistema vacío (P₀)",
-      math: `P_0 = 1 - \\rho = 1 - ${rho.toFixed(4)} = ${p0.toFixed(4)}`,
+      math: "P_0 = 1 - \\rho = 1 - " + rho.toFixed(4) + " = " + p0.toFixed(4),
       desc: "Es la probabilidad de que no haya ningún cliente en el sistema en un momento dado."
     },
     {
       title: "Paso 3: Clientes en el sistema (L)",
-      math: `L = \\frac{\\lambda}{\\mu - \\lambda} = \\frac{${lambda}}{${mu} - ${lambda}} = ${l.toFixed(4)}`,
+      math: "L = \\frac{\\lambda}{\\mu - \\lambda} = \\frac{" + lambda + "}{" + mu + " - " + lambda + "} = " + l.toFixed(4),
       desc: "Promedio de clientes totales que se encuentran en el sistema (tanto en cola como siendo atendidos)."
     },
     {
       title: "Paso 4: Clientes en cola (Lq)",
-      math: `L_q = L \\cdot \\rho = ${l.toFixed(4)} \\cdot ${rho.toFixed(4)} = ${lq.toFixed(4)}`,
+      math: "L_q = L \\cdot \\rho = " + l.toFixed(4) + " \\cdot " + rho.toFixed(4) + " = " + lq.toFixed(4),
       desc: "Promedio de clientes que están haciendo fila, esperando a ser atendidos."
     },
     {
       title: "Paso 5: Tiempo en el sistema (W)",
-      math: `W = \\frac{1}{\\mu - \\lambda} = \\frac{1}{${mu} - ${lambda}} = ${w.toFixed(4)}`,
+      math: "W = \\frac{1}{\\mu - \\lambda} = \\frac{1}{" + mu + " - " + lambda + "} = " + w.toFixed(4),
       desc: "Tiempo total promedio que un cliente pasa desde que llega hasta que termina su servicio."
     },
     {
       title: "Paso 6: Tiempo en cola (Wq)",
-      math: `W_q = \\frac{\\lambda}{\\mu(\\mu - \\lambda)} = \\frac{${lambda}}{${mu}(${mu} - ${lambda})} = ${wq.toFixed(4)}`,
+      math: "W_q = \\frac{\\lambda}{\\mu(\\mu - \\lambda)} = \\frac{" + lambda + "}{" + mu + "(" + mu + " - " + lambda + ")} = " + wq.toFixed(4),
       desc: "Tiempo promedio que un cliente pasa únicamente esperando en la fila antes de ser atendido."
     }
   ];
@@ -84,45 +94,53 @@ export function solveMM1K(lambda, mu, k) {
   const wq = w - (1 / mu);
   const lq = lambdaEfec * wq;
 
+  const eqP0 = Math.abs(lambda - mu) < 0.0001
+    ? "\\frac{1}{K + 1} = \\frac{1}{" + k + " + 1}"
+    : "\\frac{1 - \\rho}{1 - \\rho^{K+1}} = \\frac{1 - " + rho.toFixed(4) + "}{1 - " + Math.pow(rho, k+1).toFixed(4) + "}";
+
+  const eqL = Math.abs(lambda - mu) < 0.0001
+    ? "\\frac{K}{2} = \\frac{" + k + "}{2}"
+    : "\\frac{\\rho}{1 - \\rho} - \\frac{(K + 1)\\rho^{K+1}}{1 - \\rho^{K+1}}";
+
   const steps = [
     {
       title: "Paso 1: Utilización base (ρ)",
-      math: `\\rho = \\frac{\\lambda}{\\mu} = \\frac{${lambda}}{${mu}} = ${rho.toFixed(4)}`,
+      math: "\\rho = \\frac{\\lambda}{\\mu} = \\frac{" + lambda + "}{" + mu + "} = " + rho.toFixed(4),
       desc: "Calcula el factor de utilización crudo. Al ser una cola finita, el sistema puede ser estable incluso si λ ≥ μ."
     },
     {
       title: "Paso 2: Probabilidad de sistema vacío (P₀)",
-      math: `P_0 = ${Math.abs(lambda - mu) < 0.0001 ? `\\frac{1}{K + 1} = \\frac{1}{${k} + 1}` : `\\frac{1 - \\rho}{1 - \\rho^{K+1}} = \\frac{1 - ${rho.toFixed(4)}}{1 - ${Math.pow(rho, k+1).toFixed(4)}}`} = ${p0.toFixed(4)}`,
+      math: "P_0 = " + eqP0 + " = " + p0.toFixed(4),
       desc: "Probabilidad de que el sistema esté completamente vacío."
     },
     {
       title: "Paso 3: Probabilidad de sistema lleno (Pₖ)",
-      math: `P_K = P_0 \\cdot \\rho^K = ${p0.toFixed(4)} \\cdot ${Math.pow(rho, k).toFixed(4)} = ${pk.toFixed(4)}`,
+      math: "P_K = P_0 \\cdot \\rho^K = " + p0.toFixed(4) + " \\cdot " + Math.pow(rho, k).toFixed(4) + " = " + pk.toFixed(4),
       desc: "Probabilidad de que la capacidad máxima (K) esté alcanzada, lo que provocará el rechazo de nuevos clientes."
     },
     {
       title: "Paso 4: Tasa de llegada efectiva (λ efec)",
-      math: `\\lambda_{efec} = \\lambda(1 - P_K) = ${lambda}(1 - ${pk.toFixed(4)}) = ${lambdaEfec.toFixed(4)}`,
+      math: "\\lambda_{efec} = \\lambda(1 - P_K) = " + lambda + "(1 - " + pk.toFixed(4) + ") = " + lambdaEfec.toFixed(4),
       desc: "Representa la verdadera cantidad de clientes que logran entrar al sistema sin ser rechazados."
     },
     {
       title: "Paso 5: Clientes en sistema (L)",
-      math: `L = ${Math.abs(lambda - mu) < 0.0001 ? `\\frac{K}{2} = \\frac{${k}}{2}` : `\\frac{\\rho}{1 - \\rho} - \\frac{(K + 1)\\rho^{K+1}}{1 - \\rho^{K+1}}`} = ${l.toFixed(4)}`,
+      math: "L = " + eqL + " = " + l.toFixed(4),
       desc: "Promedio de clientes dentro de las instalaciones."
     },
     {
       title: "Paso 6: Tiempo en sistema (W)",
-      math: `W = \\frac{L}{\\lambda_{efec}} = \\frac{${l.toFixed(4)}}{${lambdaEfec.toFixed(4)}} = ${w.toFixed(4)}`,
+      math: "W = \\frac{L}{\\lambda_{efec}} = \\frac{" + l.toFixed(4) + "}{" + lambdaEfec.toFixed(4) + "} = " + w.toFixed(4),
       desc: "Tiempo total promedio que un cliente pasa dentro."
     },
     {
       title: "Paso 7: Tiempo en cola (Wq)",
-      math: `W_q = W - \\frac{1}{\\mu} = ${w.toFixed(4)} - \\frac{1}{${mu}} = ${wq.toFixed(4)}`,
+      math: "W_q = W - \\frac{1}{\\mu} = " + w.toFixed(4) + " - \\frac{1}{" + mu + "} = " + wq.toFixed(4),
       desc: "Tiempo de espera en fila de un cliente que logró entrar."
     },
     {
       title: "Paso 8: Clientes en cola (Lq)",
-      math: `L_q = \\lambda_{efec} \\cdot W_q = ${lambdaEfec.toFixed(4)} \\cdot ${wq.toFixed(4)} = ${lq.toFixed(4)}`,
+      math: "L_q = \\lambda_{efec} \\cdot W_q = " + lambdaEfec.toFixed(4) + " \\cdot " + wq.toFixed(4) + " = " + lq.toFixed(4),
       desc: "Cantidad promedio de clientes esperando en la fila."
     }
   ];
@@ -167,37 +185,37 @@ export function solveMMs(lambda, mu, s) {
   const steps = [
     {
       title: "Paso 1: Utilización del sistema (ρ)",
-      math: `\\rho = \\frac{\\lambda}{s \\mu} = \\frac{${lambda}}{${s} \\cdot ${mu}} = ${rho.toFixed(4)}`,
+      math: "\\rho = \\frac{\\lambda}{s \\mu} = \\frac{" + lambda + "}{" + s + " \\cdot " + mu + "} = " + rho.toFixed(4),
       desc: "Porcentaje promedio de tiempo que los servidores están ocupados colectivamente."
     },
     {
       title: "Paso 2: Razón de tráfico (r)",
-      math: `r = \\frac{\\lambda}{\\mu} = \\frac{${lambda}}{${mu}} = ${r.toFixed(4)}`,
+      math: "r = \\frac{\\lambda}{\\mu} = \\frac{" + lambda + "}{" + mu + "} = " + r.toFixed(4),
       desc: "El número promedio de servidores que estarían ocupados si la capacidad fuera infinita."
     },
     {
       title: "Paso 3: Probabilidad de sistema vacío (P₀)",
-      math: `P_0 = \\left[ \\sum_{n=0}^{s-1} \\frac{r^n}{n!} + \\frac{r^s}{s!(1 - \\rho)} \\right]^{-1} = ${p0.toFixed(4)}`,
+      math: "P_0 = \\left[ \\sum_{n=0}^{s-1} \\frac{r^n}{n!} + \\frac{r^s}{s!(1 - \\rho)} \\right]^{-1} = " + p0.toFixed(4),
       desc: "Probabilidad de que todos los servidores estén inactivos simultáneamente."
     },
     {
       title: "Paso 4: Clientes en cola (Lq)",
-      math: `L_q = \\frac{P_0 \\cdot r^s \\cdot \\rho}{s!(1 - \\rho)^2} = ${lq.toFixed(4)}`,
+      math: "L_q = \\frac{P_0 \\cdot r^s \\cdot \\rho}{s!(1 - \\rho)^2} = " + lq.toFixed(4),
       desc: "Promedio de clientes que no encuentran servidor libre y deben esperar en la fila compartida."
     },
     {
       title: "Paso 5: Clientes en sistema (L)",
-      math: `L = L_q + r = ${lq.toFixed(4)} + ${r.toFixed(4)} = ${l.toFixed(4)}`,
+      math: "L = L_q + r = " + lq.toFixed(4) + " + " + r.toFixed(4) + " = " + l.toFixed(4),
       desc: "Promedio total de clientes dentro de las instalaciones."
     },
     {
       title: "Paso 6: Tiempo en cola (Wq)",
-      math: `W_q = \\frac{L_q}{\\lambda} = \\frac{${lq.toFixed(4)}}{${lambda}} = ${wq.toFixed(4)}`,
+      math: "W_q = \\frac{L_q}{\\lambda} = \\frac{" + lq.toFixed(4) + "}{" + lambda + "} = " + wq.toFixed(4),
       desc: "Tiempo que un cliente gasta esperando a que se desocupe alguno de los servidores."
     },
     {
       title: "Paso 7: Tiempo en sistema (W)",
-      math: `W = W_q + \\frac{1}{\\mu} = ${wq.toFixed(4)} + \\frac{1}{${mu}} = ${w.toFixed(4)}`,
+      math: "W = W_q + \\frac{1}{\\mu} = " + wq.toFixed(4) + " + \\frac{1}{" + mu + "} = " + w.toFixed(4),
       desc: "Tiempo total empleado por un cliente desde que ingresa hasta que sale despachado."
     }
   ];

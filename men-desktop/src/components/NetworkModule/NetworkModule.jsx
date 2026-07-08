@@ -13,7 +13,7 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
   const isCriticalView = viewMode === 'critical';
   const availableMethods = isCriticalView
     ? ['cpm', 'pert']
-    : ['dijkstra', 'kruskal', 'ford-fulkerson', 'cpm', 'pert'];
+    : ['dijkstra', 'kruskal', 'ford-fulkerson'];
 
   useEffect(() => {
     handleGenerateNew();

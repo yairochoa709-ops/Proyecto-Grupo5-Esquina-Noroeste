@@ -202,16 +202,19 @@ export default function DecisionModule() {
 
           <div style={{ width: '100%', marginTop: '15px' }}>
             <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '5px', display: 'block' }}>Ejemplos precargados:</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <div className="exercise-list" style={{ marginTop: '5px' }}>
               {preloadedExamples.map((ex) => (
-                <button
+                <div
                   key={ex.id}
-                  className="btn"
-                  style={{ background: 'rgba(255,255,255,0.1)', color: '#e2e8f0', textAlign: 'left', fontSize: '0.8rem', padding: '6px 10px' }}
+                  className="exercise-card"
                   onClick={() => loadExample(ex)}
+                  style={{ cursor: 'pointer', padding: '10px' }}
                 >
-                  {ex.id}. {ex.title}
-                </button>
+                  <div className="title" style={{ fontSize: '0.85rem' }}>
+                    <span>{ex.id}. {ex.title}</span>
+                    <span className="badge balanced" style={{ fontSize: '0.65rem' }}>EJEMPLO</span>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

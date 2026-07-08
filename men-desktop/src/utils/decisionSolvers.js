@@ -43,26 +43,28 @@ export function solveDecisionsUncertainty(matrix, isCost = false) {
   const optimalMaximin = results.filter(r => (isCost ? r.maxVal : r.minVal) === bestMaximin).map(r => r.altIndex);
   const optimalLaplace = results.filter(r => r.laplace === bestLaplace).map(r => r.altIndex);
 
+  const enfoqueLabel = isCost ? "\\text{Minimizar Costos}" : "\\text{Maximizar Ganancias}";
+
   const steps = [
     {
       title: "Paso 1: Identificar el enfoque",
-      math: `\\text{Enfoque Actual: } ${isCost ? '\\text{Minimizar Costos}' : '\\text{Maximizar Ganancias'} }`,
+      math: "\\text{Enfoque Actual: } " + enfoqueLabel,
       desc: "Determina si el objetivo es buscar el valor numérico más alto (ganancias) o el más bajo (costos)."
     },
     {
       title: "Paso 2: Criterio Maximax (Optimista)",
-      math: `\\text{Mejor Alternativa: } A_{${optimalMaximax.map(i => i+1).join(', A_')}} = ${bestMaximax}`,
+      math: "\\text{Mejor Alternativa: } A_{" + optimalMaximax.map(i => i+1).join(", A_") + "} = " + bestMaximax,
       desc: "Para cada alternativa, encuentra el mejor escenario posible. Luego, elige el mejor de todos esos escenarios."
     },
     {
       title: "Paso 3: Criterio Maximin (Pesimista)",
-      math: `\\text{Mejor Alternativa: } A_{${optimalMaximin.map(i => i+1).join(', A_')}} = ${bestMaximin}`,
+      math: "\\text{Mejor Alternativa: } A_{" + optimalMaximin.map(i => i+1).join(", A_") + "} = " + bestMaximin,
       desc: "Para cada alternativa, encuentra el peor escenario posible. Luego, elige el 'mejor de los peores' (el mal menor)."
     },
     {
       title: "Paso 4: Criterio Laplace (Equiprobable)",
-      math: `\\text{Mejor Alternativa: } A_{${optimalLaplace.map(i => i+1).join(', A_')}} = ${bestLaplace.toFixed(2)}`,
-      desc: `Asume que todos los estados tienen la misma probabilidad (1/${numStates}) y promedia cada alternativa. Luego elige el mejor promedio.`
+      math: "\\text{Mejor Alternativa: } A_{" + optimalLaplace.map(i => i+1).join(", A_") + "} = " + bestLaplace.toFixed(2),
+      desc: "Asume que todos los estados tienen la misma probabilidad (1/" + numStates + ") y promedia cada alternativa. Luego elige el mejor promedio."
     }
   ];
 
@@ -112,25 +114,27 @@ export function solveDecisionsRisk(matrix, probabilities, isCost = false) {
 
   const optimalVME = results.filter(r => r.vme === bestVME).map(r => r.altIndex);
 
+  const enfoqueLabel = isCost ? "\\text{Costos}" : "\\text{Ganancias}";
+
   const steps = [
     {
       title: "Paso 1: Validar parámetros",
-      math: `\\sum \\text{Probabilidades} = ${sumProb.toFixed(2)} \\quad | \\quad \\text{Enfoque: } ${isCost ? '\\text{Costos}' : '\\text{Ganancias'} }`,
+      math: "\\sum \\text{Probabilidades} = " + sumProb.toFixed(2) + " \\quad | \\quad \\text{Enfoque: } " + enfoqueLabel,
       desc: "Verifica que la suma de probabilidades sea el 100% (1.0) y define el objetivo a minimizar o maximizar."
     },
     ...results.map(r => {
       const row = matrix[r.altIndex];
-      const sumStr = row.map((val, idx) => `(${val} \\cdot ${probabilities[idx]})`).join(' + ');
+      const sumStr = row.map((val, idx) => "(" + val + " \\cdot " + probabilities[idx] + ")").join(' + ');
       return {
-        title: `Paso ${r.altIndex + 2}: Valor Monetario Esperado A${r.altIndex + 1}`,
-        math: `\\text{VME}_{A${r.altIndex + 1}} = ${sumStr} = ${r.vme.toFixed(2)}`,
-        desc: `Multiplica cada resultado de la alternativa ${r.altIndex + 1} por su probabilidad correspondiente y los suma.`
+        title: "Paso " + (r.altIndex + 2) + ": Valor Monetario Esperado A" + (r.altIndex + 1),
+        math: "\\text{VME}_{A" + (r.altIndex + 1) + "} = " + sumStr + " = " + r.vme.toFixed(2),
+        desc: "Multiplica cada resultado de la alternativa " + (r.altIndex + 1) + " por su probabilidad correspondiente y los suma."
       };
     }),
     {
       title: "Paso Final: Tomar la Decisión",
-      math: `\\text{Decisión Óptima: } A_{${optimalVME.map(i => i+1).join(', A_')}} = ${bestVME.toFixed(2)}`,
-      desc: `Selecciona la alternativa con el ${isCost ? 'menor' : 'mayor'} VME, maximizando o minimizando el resultado a largo plazo.`
+      math: "\\text{Decisión Óptima: } A_{" + optimalVME.map(i => i+1).join(", A_") + "} = " + bestVME.toFixed(2),
+      desc: "Selecciona la alternativa con el " + (isCost ? 'menor' : 'mayor') + " VME, maximizando o minimizando el resultado a largo plazo."
     }
   ];
 
