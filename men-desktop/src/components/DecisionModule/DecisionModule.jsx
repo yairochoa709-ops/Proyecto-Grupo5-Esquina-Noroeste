@@ -159,10 +159,10 @@ export default function DecisionModule() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (result) {
       const inputs = { matrix, probabilities, isCost, statement };
-      exportDecisionToPDF(selectedMethod, inputs, result);
+      await exportDecisionToPDF(selectedMethod, inputs, result);
     }
   };
 

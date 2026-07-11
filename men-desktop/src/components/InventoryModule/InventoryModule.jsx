@@ -137,10 +137,10 @@ export default function InventoryModule() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (result) {
       const inputs = { D: Number(D), Co: Number(Co), Ch: Number(Ch), Cf: Number(Cf), p: Number(p), d: Number(d), abcItems, statement };
-      exportInventoryToPDF(selectedMethod, inputs, result);
+      await exportInventoryToPDF(selectedMethod, inputs, result);
     }
   };
 

@@ -128,10 +128,10 @@ export default function QueueModule() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (result) {
       const inputs = { lambda: Number(lambda), mu: Number(mu), k: Number(k), s: Number(s), statement };
-      exportQueueToPDF(selectedMethod, inputs, result);
+      await exportQueueToPDF(selectedMethod, inputs, result);
     }
   };
 
