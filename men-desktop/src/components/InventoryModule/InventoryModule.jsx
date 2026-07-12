@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { solveEOQ, solveEOQBackorders, solveEPQ, classifyABC } from '../../utils/inventorySolvers';
 import { exportInventoryToPDF } from '../../utils/inventoryPdfGenerator';
-import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Line, LineChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import 'katex/dist/katex.min.css';
 import { BlockMath } from 'react-katex';
 
@@ -93,6 +93,7 @@ export default function InventoryModule() {
   const [activeTab, setActiveTab] = useState('input'); // 'input' | 'results'
   const [statement, setStatement] = useState(null);
   const [showStatement, setShowStatement] = useState(true);
+  const chartRef = useRef(null);
 
   const loadExample = (ex) => {
     setSelectedMethod(ex.method);
@@ -140,7 +141,7 @@ export default function InventoryModule() {
   const handleExport = async () => {
     if (result) {
       const inputs = { D: Number(D), Co: Number(Co), Ch: Number(Ch), Cf: Number(Cf), p: Number(p), d: Number(d), abcItems, statement };
-      await exportInventoryToPDF(selectedMethod, inputs, result);
+      await exportInventoryToPDF(selectedMethod, inputs, result, chartRef);
     }
   };
 
@@ -356,6 +357,70 @@ export default function InventoryModule() {
               {result.S !== undefined && <ResultCard title="Faltante Máximo (S*)" value={result.S.toFixed(2)} desc="Unidades permitidas faltar" color="#ef4444" />}
               {result.Imax !== undefined && <ResultCard title="Inventario Máx (Imax)" value={result.Imax.toFixed(2)} desc="Nivel máximo de stock" color="#059669" />}
             </div>
+            </div>
+          )}
+
+          {/* ── GRÁFICA DE COMPORTAMIENTO DE INVENTARIO ── */}
+          {result && selectedMethod !== 'abc' && result.chartData && (
+            <div
+              ref={chartRef}
+              style={{
+                background: 'rgba(0,0,0,0.25)',
+                borderRadius: '12px',
+                padding: '16px',
+                marginTop: '4px',
+              }}
+            >
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#f8fafc' }}>
+                📈 Comportamiento del Inventario
+              </h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={result.chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid stroke="#1e3a5f" strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="t"
+                    stroke="#64748b"
+                    fontSize={10}
+                    label={{ value: 'Tiempo (años)', position: 'insideBottom', offset: -2, fill: '#94a3b8', fontSize: 11 }}
+                    tickFormatter={v => v.toFixed(2)}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    fontSize={10}
+                    label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                    tickFormatter={v => v.toLocaleString()}
+                  />
+                  <Tooltip
+                    contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
+                    formatter={(val, name) => [val.toLocaleString(), name === 'inventario' ? 'Inventario' : 'Promedio']}
+                    labelFormatter={t => 't = ' + parseFloat(t).toFixed(3)}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  {/* Línea de referencia en y=0 para modelos con faltantes */}
+                  {selectedMethod === 'eoq-backorders' && (
+                    <ReferenceLine y={0} stroke="#475569" strokeDasharray="4 4" />
+                  )}
+                  <Line
+                    type="linear"
+                    dataKey="inventario"
+                    name="Inventario"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="promedio"
+                    name="Promedio"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="6 3"
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           )}
 

@@ -126,7 +126,7 @@ function addFormulaImg(doc, imgData, pageW, y, maxW = 500) {
 //  EXPORTADOR PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════
 
-export async function exportInventoryToPDF(method, inputs, result) {
+export async function exportInventoryToPDF(method, inputs, result, chartRef = null) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -225,6 +225,31 @@ export async function exportInventoryToPDF(method, inputs, result) {
       margin: { left: margin, right: margin },
     });
     y = doc.lastAutoTable.finalY + 18;
+
+    // GRÁFICA DE COMPORTAMIENTO DEL INVENTARIO
+    if (chartRef && chartRef.current) {
+      try {
+        await document.fonts.ready;
+        const { default: html2canvas } = await import('html2canvas');
+        const chartCanvas = await html2canvas(chartRef.current, {
+          backgroundColor: '#0f172a',
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        });
+        const chartImg = chartCanvas.toDataURL('image/png');
+        const pxToPt   = 72 / 96;
+        let chartW = (chartCanvas.width  / 2) * pxToPt;
+        let chartH = (chartCanvas.height / 2) * pxToPt;
+        if (chartW > contentW) { chartH *= contentW / chartW; chartW = contentW; }
+
+        checkPage(chartH + 30);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(15, 23, 42);
+        doc.text('Comportamiento del Inventario', margin, y); y += 12;
+        doc.addImage(chartImg, 'PNG', margin, y, chartW, chartH);
+        y += chartH + 16;
+      } catch (_) { /* Si falla la captura, se omite la gráfica */ }
+    }
 
     // RESOLUCIÓN PASO A PASO
     if (result.steps && result.steps.length > 0) {

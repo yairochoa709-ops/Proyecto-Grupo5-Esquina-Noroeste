@@ -39,7 +39,8 @@ export function solveEOQ(D, Co, Ch) {
 
   const conclusion = `De acuerdo al modelo EOQ clásico, la empresa debe realizar pedidos de ${Q.toFixed(2)} unidades cada vez. De esta forma, se realizarán aproximadamente ${N.toFixed(2)} pedidos al año, con un espaciamiento de ${T_days.toFixed(2)} días entre cada pedido. Esta política garantiza el menor costo posible, siendo el Costo Total Anual de Inventario de $${CT.toFixed(2)}.`;
 
-  return { Q, N, T_years, T_days, CT, steps, conclusion };
+  const chartData = buildInventoryChartData({ type: 'eoq', Q, T_years, N });
+  return { Q, N, T_years, T_days, CT, steps, conclusion, chartData };
 }
 
 export function solveEOQBackorders(D, Co, Ch, Cf) {
@@ -101,7 +102,10 @@ export function solveEOQBackorders(D, Co, Ch, Cf) {
 
   const conclusion = `Bajo la política de permitir déficits, lo óptimo es pedir ${Q.toFixed(2)} unidades, permitiendo a propósito que falten ${S.toFixed(2)} unidades antes de que llegue el pedido. El inventario físico máximo real que se alcanzará en bodega es de ${Imax.toFixed(2)} unidades. Esta estrategia asume costos de pedido, mantenimiento y multas por retraso sumando un Costo Total optimizado de $${CT.toFixed(2)}.`;
 
-  return { Q, S, Imax, CT, costOrdering, costHolding, costShortage, steps, conclusion };
+  const N = D / Q;
+  const T_years = Q / D;
+  const chartData = buildInventoryChartData({ type: 'backorders', Q, T_years, N, S, Imax });
+  return { Q, S, Imax, CT, costOrdering, costHolding, costShortage, steps, conclusion, chartData };
 }
 
 export function solveEPQ(D, Co, Ch, p, d) {
@@ -154,7 +158,9 @@ export function solveEPQ(D, Co, Ch, p, d) {
 
   const conclusion = `Para que la fábrica opere al menor costo sin interrumpir las ventas, debe programar lotes u órdenes de fabricación de ${Q.toFixed(2)} unidades por corrida. Se efectuarán ${N.toFixed(2)} corridas de producción al año. Cada corrida tomará ${tp.toFixed(4)} años en completarse. El inventario máximo en planta será de ${Imax.toFixed(2)} unidades. Costo Total asociado: $${CT.toFixed(2)}.`;
 
-  return { Q, Imax, tp, N, CT, steps, conclusion };
+  const T_years = Q / D;
+  const chartData = buildInventoryChartData({ type: 'epq', Q, T_years, N, Imax, tp, p, d });
+  return { Q, Imax, tp, N, CT, steps, conclusion, chartData };
 }
 
 export function classifyABC(items) {
@@ -221,4 +227,86 @@ export function classifyABC(items) {
   const conclusion = `El sistema ha clasificado el inventario con éxito. Se determinó que ${classA} artículo(s) pertenecen a la Clase A, y por ende, representan la mayor inversión económica y requieren un control estricto de inventario. Hay ${classB} artículo(s) Clase B y ${classC} artículo(s) Clase C. Enfoca tus políticas de compras y resurtido según esta prioridad para optimizar gastos.`;
 
   return { items: result, totalVMA, steps, conclusion };
+}
+
+/**
+ * Genera los datos de la gráfica de comportamiento de inventario (diente de sierra).
+ * Devuelve un array de puntos { t, inventario, promedio } listos para Recharts.
+ * Se representan 3 ciclos completos para que la gráfica se vea bien.
+ */
+export function buildInventoryChartData({ type, Q, T_years, N, S = 0, Imax, tp, p, d }) {
+  const cycles = Math.min(Math.ceil(N), 5); // máximo 5 ciclos
+  const pointsPerCycle = 60;
+  const points = [];
+
+  const totalTime = cycles * T_years;
+
+  for (let c = 0; c < cycles; c++) {
+    const tStart = c * T_years;
+    const tEnd   = (c + 1) * T_years;
+
+    if (type === 'epq') {
+      // Fase de producción (sube) + fase de consumo (baja)
+      const tpCycle = tp;
+      const tcCycle = T_years - tpCycle;
+      const ptsProd = Math.round(pointsPerCycle * (tpCycle / T_years));
+      const ptsCons = pointsPerCycle - ptsProd;
+
+      // Producción: inventario sube de 0 a Imax
+      for (let i = 0; i <= ptsProd; i++) {
+        const frac = i / ptsProd;
+        const t = tStart + frac * tpCycle;
+        const inv = frac * Imax;
+        points.push({ t: parseFloat(t.toFixed(4)), inventario: parseFloat(inv.toFixed(2)) });
+      }
+      // Consumo: inventario baja de Imax a 0
+      for (let i = 1; i <= ptsCons; i++) {
+        const frac = i / ptsCons;
+        const t = tStart + tpCycle + frac * tcCycle;
+        const inv = Imax * (1 - frac);
+        points.push({ t: parseFloat(t.toFixed(4)), inventario: parseFloat(Math.max(0, inv).toFixed(2)) });
+      }
+    } else if (type === 'backorders') {
+      // Inventario real sube a Imax, baja a 0, luego baja negativo a -S, sube de vuelta a 0
+      const Imax_val = Imax !== undefined ? Imax : Q;
+      const S_val    = S;
+      const t1 = T_years * (Imax_val / Q); // tiempo en positivo
+      const t2 = T_years - t1;             // tiempo en negativo (faltante)
+      const pts1 = Math.round(pointsPerCycle * (t1 / T_years));
+      const pts2 = pointsPerCycle - pts1;
+
+      // Baja de Imax a 0
+      for (let i = 0; i <= pts1; i++) {
+        const frac = i / pts1;
+        const t = tStart + frac * t1;
+        const inv = Imax_val * (1 - frac);
+        points.push({ t: parseFloat(t.toFixed(4)), inventario: parseFloat(inv.toFixed(2)) });
+      }
+      // Baja de 0 a -S (faltante)
+      for (let i = 1; i <= pts2; i++) {
+        const frac = i / pts2;
+        const t = tStart + t1 + frac * t2;
+        const inv = -S_val * frac;
+        points.push({ t: parseFloat(t.toFixed(4)), inventario: parseFloat(inv.toFixed(2)) });
+      }
+    } else {
+      // EOQ estándar: diente de sierra, baja de Q a 0
+      for (let i = 0; i <= pointsPerCycle; i++) {
+        const frac = i / pointsPerCycle;
+        const t = tStart + frac * T_years;
+        const inv = Q * (1 - frac);
+        points.push({ t: parseFloat(t.toFixed(4)), inventario: parseFloat(inv.toFixed(2)) });
+      }
+    }
+  }
+
+  // Calcular inventario promedio para la línea horizontal
+  const avgInv = type === 'backorders'
+    ? (Imax !== undefined ? Imax : Q) / 2
+    : type === 'epq'
+      ? Imax / 2
+      : Q / 2;
+
+  // Añadir campo de promedio a todos los puntos
+  return points.map(p => ({ ...p, promedio: parseFloat(avgInv.toFixed(2)) }));
 }
