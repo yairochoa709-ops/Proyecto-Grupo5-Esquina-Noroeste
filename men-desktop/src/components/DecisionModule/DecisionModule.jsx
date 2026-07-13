@@ -1,76 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { solveDecisionsUncertainty, solveDecisionsRisk } from '../../utils/decisionSolvers';
 import { exportDecisionToPDF } from '../../utils/decisionPdfGenerator';
+import { generateDecisionExamples } from '../../utils/exampleGenerators';
 import 'katex/dist/katex.min.css';
 import { BlockMath } from 'react-katex';
-
-const preloadedExamples = [
-  {
-    id: 1,
-    title: 'Inversión en la Bolsa',
-    statement: 'Un inversionista tiene $100,000 para invertir. Las alternativas son: acciones de alto riesgo (A1), bonos del estado (A2) y ahorros fijos (A3). Los estados de la naturaleza (mercado) son: crecimiento económico (E1), estable (E2) y recesión (E3). Determine la mejor decisión bajo incertidumbre.',
-    method: 'incertidumbre',
-    isCost: false,
-    matrix: [
-      [20000, 10000, -10000],
-      [8000, 8000, 8000],
-      [5000, 5000, 5000]
-    ],
-    probabilities: [0.33, 0.33, 0.34]
-  },
-  {
-    id: 2,
-    title: 'Lanzamiento de un Nuevo Producto',
-    statement: 'Una empresa planea lanzar un producto. Las alternativas son: lanzamiento agresivo a nivel nacional (A1), lanzamiento regional (A2) o no lanzar (A3). Los estados son: alta aceptación (E1) con 40% de probabilidad, y baja aceptación (E2) con 60%. Determine la decisión basada en el valor monetario esperado.',
-    method: 'riesgo',
-    isCost: false,
-    matrix: [
-      [500000, -200000],
-      [200000, 50000],
-      [0, 0]
-    ],
-    probabilities: [0.4, 0.6]
-  },
-  {
-    id: 3,
-    title: 'Selección de Proveedores',
-    statement: 'Una fábrica necesita elegir un proveedor. El proveedor A ofrece precios bajos pero calidad variable, el proveedor B precios medios y calidad constante, y el proveedor C precios altos con calidad premium. Los estados son: alta demanda (E1), demanda estable (E2) y baja demanda (E3). El objetivo es minimizar los costos operativos.',
-    method: 'riesgo',
-    isCost: true,
-    matrix: [
-      [15000, 12000, 10000],
-      [13000, 13000, 13000],
-      [20000, 18000, 15000]
-    ],
-    probabilities: [0.5, 0.3, 0.2]
-  },
-  {
-    id: 4,
-    title: 'Expansión de Planta',
-    statement: 'Una empresa manufacturera considera 3 opciones: construir una planta grande (A1), construir una pequeña (A2) o no hacer nada (A3). Los estados futuros del mercado son: altamente favorable (E1) y desfavorable (E2). No se conocen probabilidades. Determine la mejor opción usando criterios de incertidumbre.',
-    method: 'incertidumbre',
-    isCost: false,
-    matrix: [
-      [300000, -150000],
-      [100000, -20000],
-      [0, 0]
-    ],
-    probabilities: [0.5, 0.5]
-  },
-  {
-    id: 5,
-    title: 'Campaña de Marketing',
-    statement: 'El equipo de marketing debe decidir entre tres tipos de campaña para reducir los costos de adquisición de clientes: Campaña Digital (A1), Campaña en TV (A2) o Mixta (A3). Los estados son: competencia agresiva (E1) o competencia moderada (E2). Se busca minimizar los costos asociados a la pérdida de clientes.',
-    method: 'incertidumbre',
-    isCost: true,
-    matrix: [
-      [5000, 2000],
-      [8000, 4000],
-      [6000, 3000]
-    ],
-    probabilities: [0.5, 0.5]
-  }
-];
 
 export default function DecisionModule() {
   const [selectedMethod, setSelectedMethod] = useState('incertidumbre');
@@ -86,6 +19,16 @@ export default function DecisionModule() {
   const [activeTab, setActiveTab] = useState('input'); // 'input' | 'results'
   const [statement, setStatement] = useState(null);
   const [showStatement, setShowStatement] = useState(true);
+
+  const [examplesList, setExamplesList] = useState([]);
+
+  useEffect(() => {
+    setExamplesList(generateDecisionExamples(selectedMethod));
+  }, [selectedMethod]);
+
+  const handleGenerateExamples = () => {
+    setExamplesList(generateDecisionExamples(selectedMethod));
+  };
 
   const loadExample = (ex) => {
     setSelectedMethod(ex.method);
@@ -201,9 +144,16 @@ export default function DecisionModule() {
           </button>
 
           <div style={{ width: '100%', marginTop: '15px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '5px', display: 'block' }}>Ejemplos precargados:</label>
-            <div className="exercise-list" style={{ marginTop: '5px' }}>
-              {preloadedExamples.map((ex) => (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <label style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>Ejemplos precargados:</label>
+              <button 
+                onClick={handleGenerateExamples}
+                style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', border: '1px solid #3b82f6', borderRadius: '4px', padding: '4px 8px', fontSize: '0.75rem', cursor: 'pointer' }}>
+                ↻ Generar Nuevos
+              </button>
+            </div>
+            <div className="exercise-list">
+              {examplesList.map(ex => (
                 <div
                   key={ex.id}
                   className="exercise-card"

@@ -1,67 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { solveMM1, solveMM1K, solveMMs } from '../../utils/queueSolvers';
 import { exportQueueToPDF } from '../../utils/queuePdfGenerator';
+import { generateQueueExamples } from '../../utils/exampleGenerators';
 import 'katex/dist/katex.min.css';
 import { BlockMath } from 'react-katex';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-
-const preloadedExamples = [
-  {
-    id: 1,
-    title: 'Ventanilla de Banco',
-    statement: 'A un banco llegan clientes a una tasa promedio de 10 por hora. El único cajero disponible atiende a una tasa promedio de 15 clientes por hora. Ambos tiempos siguen una distribución exponencial. Determine las medidas de desempeño del sistema.',
-    method: 'mm1',
-    lambda: 10,
-    mu: 15,
-    k: '',
-    s: '',
-    timeUnit: 'Horas'
-  },
-  {
-    id: 2,
-    title: 'Cajero Automático (Espacio Limitado)',
-    statement: 'Un cajero automático atiende a 5 personas por hora, mientras que los clientes llegan a una tasa de 8 por hora. Sin embargo, por regulaciones del centro comercial, solo se permite un máximo de 3 personas en el área (incluyendo al que usa el cajero). Determine la probabilidad de rechazo.',
-    method: 'mm1k',
-    lambda: 8,
-    mu: 5,
-    k: 3,
-    s: '',
-    timeUnit: 'Horas'
-  },
-  {
-    id: 3,
-    title: 'Centro de Llamadas',
-    statement: 'Un call center recibe un promedio de 20 llamadas por minuto. Hay 4 operadores trabajando, y cada uno puede manejar un promedio de 8 llamadas por minuto. Calcule la utilización de los operadores y el tiempo de espera promedio.',
-    method: 'mms',
-    lambda: 20,
-    mu: 8,
-    k: '',
-    s: 4,
-    timeUnit: 'Minutos'
-  },
-  {
-    id: 4,
-    title: 'Taller de Reparación',
-    statement: 'Un taller mecánico recibe autos a una tasa de 2 por día. El mecánico principal puede reparar en promedio 3 autos al día. Calcule cuántos autos habrá esperando reparación y el tiempo total que un auto pasa en el taller.',
-    method: 'mm1',
-    lambda: 2,
-    mu: 3,
-    k: '',
-    s: '',
-    timeUnit: 'Días'
-  },
-  {
-    id: 5,
-    title: 'Restaurante Rápido',
-    statement: 'En un restaurante de comida rápida, los clientes llegan a una tasa de 30 por hora durante el almuerzo. Tienen 3 empleados despachando pedidos, cada uno pudiendo servir a 12 clientes por hora. ¿Cuál es el tamaño de la fila promedio?',
-    method: 'mms',
-    lambda: 30,
-    mu: 12,
-    k: '',
-    s: 3,
-    timeUnit: 'Horas'
-  }
-];
 
 export default function QueueModule() {
   const [selectedMethod, setSelectedMethod] = useState('mm1');
@@ -76,6 +19,16 @@ export default function QueueModule() {
   const [currentStep, setCurrentStep] = useState(0);
   const [statement, setStatement] = useState(null);
   const [showStatement, setShowStatement] = useState(true);
+
+  const [examplesList, setExamplesList] = useState([]);
+
+  useEffect(() => {
+    setExamplesList(generateQueueExamples(selectedMethod));
+  }, [selectedMethod]);
+
+  const handleGenerateExamples = () => {
+    setExamplesList(generateQueueExamples(selectedMethod));
+  };
 
   const loadExample = (ex) => {
     setSelectedMethod(ex.method);
@@ -178,10 +131,17 @@ export default function QueueModule() {
         {warning && <div style={{ margin: '15px 0', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}>{warning}</div>}
         <button className="btn" style={{ background: '#10b981', color: '#fff', padding: '10px', marginTop: '10px', width: '100%', border: 'none', borderRadius: '4px', cursor: 'pointer' }} onClick={handleSolve} disabled={!!warning}>Calcular</button>
 
-        <div style={{ width: '100%', marginTop: '20px' }}>
-          <label style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '5px', display: 'block' }}>Ejemplos precargados:</label>
-          <div className="exercise-list" style={{ marginTop: '5px' }}>
-            {preloadedExamples.map((ex) => (
+        <div style={{ width: '100%', marginTop: '15px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <label style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>Ejemplos precargados:</label>
+            <button 
+              onClick={handleGenerateExamples}
+              style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', border: '1px solid #3b82f6', borderRadius: '4px', padding: '4px 8px', fontSize: '0.75rem', cursor: 'pointer' }}>
+              ↻ Generar Nuevos
+            </button>
+          </div>
+          <div className="exercise-list">
+            {examplesList.map(ex => (
               <div
                 key={ex.id}
                 className="exercise-card"

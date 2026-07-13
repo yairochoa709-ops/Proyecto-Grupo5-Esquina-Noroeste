@@ -1,46 +1,62 @@
-export function solveEOQ(D, Co, Ch) {
+export function solveEOQ(D, Co, Ch, diasHabiles = 365, L = 0, C = 0) {
   if (D <= 0 || Co <= 0 || Ch <= 0) {
     throw new Error('Todos los parámetros deben ser mayores a 0');
   }
+  if (diasHabiles <= 0) {
+    throw new Error('Los días hábiles por año deben ser mayores a 0');
+  }
 
-  const Q = Math.sqrt((2 * D * Co) / Ch);
-  const N = D / Q;
+  const Q_exact = Math.sqrt((2 * D * Co) / Ch);
+  const Q = Math.ceil(Q_exact);             // Redondeo de piezas (video)
+  const N_exact = D / Q;
+  const N = Math.ceil(N_exact);             // Redondeo de órdenes (video)
   const T_years = Q / D;
-  const T_days = T_years * 365;
-  const CT = (D / Q) * Co + (Q / 2) * Ch;
+  const T_days  = diasHabiles / N;          // días hábiles entre órdenes
+  const d_exact = D / diasHabiles;
+  const d_daily = Math.ceil(d_exact);       // redondeo de demanda diaria
+  const R  = L > 0 ? Math.ceil(d_daily * L) : null; // punto de reorden (piezas)
+  const TC = (D * C) + (D / Q) * Co + (Q / 2) * Ch;
 
   const steps = [
     {
       title: "Paso 1: Cantidad Económica de Pedido (Q*)",
-      math: "Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h}} = \\sqrt{\\frac{2 \\cdot " + D + " \\cdot " + Co + "}{" + Ch + "}} = " + Q.toFixed(4),
-      desc: "Representa el volumen ideal que debes ordenar cada vez para minimizar los costos de inventario."
+      math: "Q^* = \\sqrt{\\frac{2DK}{h}} = \\sqrt{\\frac{2 \\cdot " + D + " \\cdot " + Co + "}{" + Ch + "}} = " + Q_exact.toFixed(4) + " \\approx " + Q,
+      desc: "Volumen óptimo a ordenar cada vez. Se redondea al entero superior (" + Q + " piezas)."
     },
     {
-      title: "Paso 2: Número de pedidos (N)",
-      math: "N = \\frac{D}{Q^*} = \\frac{" + D + "}{" + Q.toFixed(4) + "} = " + N.toFixed(4),
-      desc: "La cantidad de veces al año que tendrás que hacer un nuevo pedido."
+      title: "Paso 2: Número esperado de órdenes (N)",
+      math: "N = \\frac{D}{Q^*} = \\frac{" + D + "}{" + Q + "} = " + N_exact.toFixed(4) + " \\approx " + N,
+      desc: "Cantidad de veces al año que se colocará una nueva orden (redondeado hacia arriba)."
     },
     {
-      title: "Paso 3: Tiempo entre pedidos (T años)",
-      math: "T = \\frac{Q^*}{D} = \\frac{" + Q.toFixed(4) + "}{" + D + "} = " + T_years.toFixed(4),
-      desc: "El lapso de tiempo en años que dura un pedido en agotarse."
+      title: "Paso 3: Demanda por día (d)",
+      math: "d = \\frac{D}{\\text{Días hábiles}} = \\frac{" + D + "}{" + diasHabiles + "} = " + d_exact.toFixed(4) + " \\approx " + d_daily,
+      desc: "Unidades demandadas por día hábil (redondeado a la pieza superior)."
     },
     {
-      title: "Paso 4: Tiempo entre pedidos (T días)",
-      math: "T_{dias} = T \\cdot 365 = " + T_years.toFixed(4) + " \\cdot 365 = " + T_days.toFixed(4),
-      desc: "Expresa el lapso de tiempo anterior en un formato más comprensible (días)."
+      title: "Paso 4: Tiempo esperado entre órdenes (T)",
+      math: "T = \\frac{\\text{Días hábiles}}{N} = \\frac{" + diasHabiles + "}{" + N + "} = " + T_days.toFixed(4) + " \\text{ días}",
+      desc: "Número de días hábiles que transcurren entre una orden y la siguiente."
     },
+    ...(R !== null ? [{
+      title: "Paso 5: Punto de Reorden (R)",
+      math: "R = d \\times L = " + d_daily + " \\times " + L + " = " + (d_daily * L) + " \\approx " + R,
+      desc: "Nivel de inventario en el que se debe colocar una nueva orden para recibirla justo a tiempo, considerando el tiempo de entrega L = " + L + " días (redondeado)."
+    }] : []),
     {
-      title: "Paso 5: Costo Total (CT)",
-      math: "CT = \\left(\\frac{D}{Q^*}\\right)C_o + \\left(\\frac{Q^*}{2}\\right)C_h = " + CT.toFixed(4),
-      desc: "El costo mínimo anualizado considerando ordenar y mantener el inventario."
+      title: R !== null ? "Paso 6: Costo Total Anual (TC)" : "Paso 5: Costo Total Anual (TC)",
+      math: "TC = D \\cdot C + \\frac{D}{Q^*} K + \\frac{Q^*}{2} h = (" + D + " \\cdot " + C + ") + \\frac{" + D + "}{" + Q + "} \\cdot " + Co + " + \\frac{" + Q + "}{2} \\cdot " + Ch + " = " + TC.toFixed(4),
+      desc: C > 0 ? "Costo anual incluyendo adquisición de material, órdenes y mantenimiento." : "Costo mínimo anualizado sumando el costo de ordenar y el costo de mantener inventario."
     }
   ];
 
-  const conclusion = `De acuerdo al modelo EOQ clásico, la empresa debe realizar pedidos de ${Q.toFixed(2)} unidades cada vez. De esta forma, se realizarán aproximadamente ${N.toFixed(2)} pedidos al año, con un espaciamiento de ${T_days.toFixed(2)} días entre cada pedido. Esta política garantiza el menor costo posible, siendo el Costo Total Anual de Inventario de $${CT.toFixed(2)}.`;
+  const conclusionR = R !== null
+    ? ` El punto de reorden es R = ${R.toFixed(2)} unidades (se debe hacer el pedido cuando el inventario llegue a ese nivel).`
+    : '';
+  const conclusion = `De acuerdo al modelo EOQ clásico, la empresa debe realizar pedidos de ${Q.toFixed(2)} unidades cada vez. Se realizarán ${N.toFixed(2)} órdenes al año, con ${T_days.toFixed(2)} días hábiles entre cada orden. La demanda diaria es de ${d_daily.toFixed(4)} unidades/día.${conclusionR} El Costo Total Anual (TC) es $${TC.toFixed(2)}.`;
 
   const chartData = buildInventoryChartData({ type: 'eoq', Q, T_years, N });
-  return { Q, N, T_years, T_days, CT, steps, conclusion, chartData };
+  return { Q, N, T_years, T_days, d_daily, R, CT: TC, TC, steps, conclusion, chartData };
 }
 
 export function solveEOQBackorders(D, Co, Ch, Cf) {
@@ -51,26 +67,26 @@ export function solveEOQBackorders(D, Co, Ch, Cf) {
   const Q = Math.sqrt(((2 * D * Co) / Ch) * ((Ch + Cf) / Cf));
   const S = Q * (Ch / (Ch + Cf));
   const Imax = Q - S;
-  
+
   const costOrdering = (D / Q) * Co;
   const costHolding = (Math.pow(Q - S, 2) / (2 * Q)) * Ch;
   const costShortage = (Math.pow(S, 2) / (2 * Q)) * Cf;
-  const CT = costOrdering + costHolding + costShortage;
+  const TC = costOrdering + costHolding + costShortage;
 
   const steps = [
     {
       title: "Paso 1: Factor de penalización",
-      math: "\\text{Factor} = \\frac{C_h + C_f}{C_f} = \\frac{" + Ch + " + " + Cf + "}{" + Cf + "} = " + ((Ch + Cf) / Cf).toFixed(4),
-      desc: "Relación entre el costo de mantener inventario y el costo de penalización por faltantes."
+      math: "\\text{Factor} = \\frac{h + C_f}{C_f} = \\frac{" + Ch + " + " + Cf + "}{" + Cf + "} = " + ((Ch + Cf) / Cf).toFixed(4),
+      desc: "Relación entre el costo de mantener inventario (h) y el costo de penalización por faltantes."
     },
     {
       title: "Paso 2: Cantidad de Pedido (Q*)",
-      math: "Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h} \\cdot \\text{Factor}} = " + Q.toFixed(4),
+      math: "Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot K}{h} \\cdot \\text{Factor}} = " + Q.toFixed(4),
       desc: "Volumen ideal a ordenar compensando los costos de mantener con las multas de faltantes permitidos."
     },
     {
       title: "Paso 3: Faltante Máximo Permitido (S*)",
-      math: "S^* = Q^* \\cdot \\left(\\frac{C_h}{C_h + C_f}\\right) = " + S.toFixed(4),
+      math: "S^* = Q^* \\cdot \\left(\\frac{h}{h + C_f}\\right) = " + S.toFixed(4),
       desc: "Máxima cantidad de unidades que la empresa se permitirá no tener en stock intencionalmente antes de resurtir."
     },
     {
@@ -80,12 +96,12 @@ export function solveEOQBackorders(D, Co, Ch, Cf) {
     },
     {
       title: "Paso 5: Costo de Ordenar",
-      math: "\\text{Costo Ordenar} = \\left(\\frac{D}{Q^*}\\right) C_o = " + costOrdering.toFixed(4),
+      math: "\\text{Costo Ordenar} = \\frac{D}{Q^*} K = " + costOrdering.toFixed(4),
       desc: "El gasto anual exclusivo de emitir órdenes de compra."
     },
     {
       title: "Paso 6: Costo de Mantener",
-      math: "\\text{Costo Mantener} = \\frac{(Q^* - S^*)^2}{2Q^*} \\cdot C_h = " + costHolding.toFixed(4),
+      math: "\\text{Costo Mantener} = \\frac{(Q^* - S^*)^2}{2Q^*} \\cdot h = " + costHolding.toFixed(4),
       desc: "El gasto anual por tener unidades guardadas."
     },
     {
@@ -94,18 +110,18 @@ export function solveEOQBackorders(D, Co, Ch, Cf) {
       desc: "El costo anual por multas o pérdidas de venta por no tener producto."
     },
     {
-      title: "Paso 8: Sumar Costo Total (CT)",
-      math: "CT = " + costOrdering.toFixed(2) + " + " + costHolding.toFixed(2) + " + " + costShortage.toFixed(2) + " = " + CT.toFixed(4),
+      title: "Paso 8: Costo Total Anual (TC)",
+      math: "TC = " + costOrdering.toFixed(2) + " + " + costHolding.toFixed(2) + " + " + costShortage.toFixed(2) + " = " + TC.toFixed(4),
       desc: "Costo mínimo total óptimo."
     }
   ];
 
-  const conclusion = `Bajo la política de permitir déficits, lo óptimo es pedir ${Q.toFixed(2)} unidades, permitiendo a propósito que falten ${S.toFixed(2)} unidades antes de que llegue el pedido. El inventario físico máximo real que se alcanzará en bodega es de ${Imax.toFixed(2)} unidades. Esta estrategia asume costos de pedido, mantenimiento y multas por retraso sumando un Costo Total optimizado de $${CT.toFixed(2)}.`;
+  const conclusion = `Bajo la política de permitir déficits, lo óptimo es pedir ${Q.toFixed(2)} unidades, permitiendo a propósito que falten ${S.toFixed(2)} unidades antes de que llegue el pedido. El inventario físico máximo real que se alcanzará en bodega es de ${Imax.toFixed(2)} unidades. Esta estrategia asume costos de pedido (K), mantenimiento (h) y multas por retraso sumando un Costo Total (TC) optimizado de $${TC.toFixed(2)}.`;
 
   const N = D / Q;
   const T_years = Q / D;
   const chartData = buildInventoryChartData({ type: 'backorders', Q, T_years, N, S, Imax });
-  return { Q, S, Imax, CT, costOrdering, costHolding, costShortage, steps, conclusion, chartData };
+  return { Q, S, Imax, CT: TC, TC, costOrdering, costHolding, costShortage, steps, conclusion, chartData };
 }
 
 export function solveEPQ(D, Co, Ch, p, d) {
@@ -120,8 +136,8 @@ export function solveEPQ(D, Co, Ch, p, d) {
   const Imax = Q * (1 - (d / p));
   const tp = Q / p;
   const N = D / Q;
-  
-  const CT = (D / Q) * Co + (Imax / 2) * Ch;
+
+  const TC = (D / Q) * Co + (Imax / 2) * Ch;
 
   const steps = [
     {
@@ -131,7 +147,7 @@ export function solveEPQ(D, Co, Ch, p, d) {
     },
     {
       title: "Paso 2: Lote de Producción (Q*)",
-      math: "Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot C_o}{C_h \\cdot \\text{Factor}}} = " + Q.toFixed(4),
+      math: "Q^* = \\sqrt{\\frac{2 \\cdot D \\cdot K}{h \\cdot \\text{Factor}}} = " + Q.toFixed(4),
       desc: "Tamaño ideal de lote de fabricación para minimizar costos."
     },
     {
@@ -150,17 +166,17 @@ export function solveEPQ(D, Co, Ch, p, d) {
       desc: "Frecuencia de lotes al año."
     },
     {
-      title: "Paso 6: Costo Total (CT)",
-      math: "CT = \\left(\\frac{D}{Q^*}\\right)C_o + \\left(\\frac{I_{max}}{2}\\right)C_h = " + CT.toFixed(4),
+      title: "Paso 6: Costo Total Anual (TC)",
+      math: "TC = \\frac{D}{Q^*} K + \\frac{I_{max}}{2} h = " + TC.toFixed(4),
       desc: "Costo de las configuraciones de máquina (setups) y almacenamiento de inventario."
     }
   ];
 
-  const conclusion = `Para que la fábrica opere al menor costo sin interrumpir las ventas, debe programar lotes u órdenes de fabricación de ${Q.toFixed(2)} unidades por corrida. Se efectuarán ${N.toFixed(2)} corridas de producción al año. Cada corrida tomará ${tp.toFixed(4)} años en completarse. El inventario máximo en planta será de ${Imax.toFixed(2)} unidades. Costo Total asociado: $${CT.toFixed(2)}.`;
+  const conclusion = `Para que la fábrica opere al menor costo sin interrumpir las ventas, debe programar lotes u órdenes de fabricación de ${Q.toFixed(2)} unidades por corrida. Se efectuarán ${N.toFixed(2)} corridas de producción al año. Cada corrida tomará ${tp.toFixed(4)} años en completarse. El inventario máximo en planta será de ${Imax.toFixed(2)} unidades. Costo Total Anual (TC): $${TC.toFixed(2)}.`;
 
   const T_years = Q / D;
   const chartData = buildInventoryChartData({ type: 'epq', Q, T_years, N, Imax, tp, p, d });
-  return { Q, Imax, tp, N, CT, steps, conclusion, chartData };
+  return { Q, Imax, tp, N, CT: TC, TC, steps, conclusion, chartData };
 }
 
 export function classifyABC(items) {

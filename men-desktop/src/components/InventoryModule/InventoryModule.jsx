@@ -1,74 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { solveEOQ, solveEOQBackorders, solveEPQ, classifyABC } from '../../utils/inventorySolvers';
 import { exportInventoryToPDF } from '../../utils/inventoryPdfGenerator';
+import { generateInventoryExamples } from '../../utils/exampleGenerators';
 import { ComposedChart, Line, LineChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import 'katex/dist/katex.min.css';
 import { BlockMath } from 'react-katex';
-
-const preloadedExamples = [
-  {
-    id: 1,
-    title: 'Venta de Neumáticos (EOQ)',
-    statement: 'Una tienda vende neumáticos y la demanda anual es de 1,200 unidades. El costo de hacer un pedido es de $20 y el costo de mantener un neumático en inventario es de $0.50 al año. Determine la cantidad óptima de pedido.',
-    method: 'eoq',
-    D: 1200,
-    Co: 20,
-    Ch: 0.5,
-    Cf: '',
-    p: '',
-    d: ''
-  },
-  {
-    id: 2,
-    title: 'Fábrica de Juguetes (EPQ)',
-    statement: 'Una fábrica produce juguetes con una demanda de 5,000 anual. El costo de preparación es $100 y de mantenimiento $1. La tasa de producción anual es de 8,000 unidades. Calcule el tamaño óptimo de lote de producción.',
-    method: 'epq',
-    D: 5000,
-    Co: 100,
-    Ch: 1,
-    Cf: '',
-    p: 8000,
-    d: 5000
-  },
-  {
-    id: 3,
-    title: 'Gestión de Almacén (ABC)',
-    statement: 'Clasifique los artículos del inventario para aplicar políticas de gestión enfocadas en el valor monetario.',
-    method: 'abc',
-    D: '', Co: '', Ch: '', Cf: '', p: '', d: '',
-    abcItems: [
-      { id: '1', name: 'Motor', D: 20, C: 5000 },
-      { id: '2', name: 'Cables', D: 500, C: 10 },
-      { id: '3', name: 'Tornillos', D: 2000, C: 0.5 },
-      { id: '4', name: 'Bombillas', D: 100, C: 20 },
-      { id: '5', name: 'Transmisor', D: 50, C: 1000 }
-    ]
-  },
-  {
-    id: 4,
-    title: 'Componentes de PC (EOQ con Faltantes)',
-    statement: 'La demanda de placas madre es 2,000. El costo de pedido es $50, mantener inventario cuesta $2. Además, el costo por unidad faltante planeada es de $5. Determine la cantidad a ordenar y el nivel máximo de escasez.',
-    method: 'eoq-backorders',
-    D: 2000,
-    Co: 50,
-    Ch: 2,
-    Cf: 5,
-    p: '',
-    d: ''
-  },
-  {
-    id: 5,
-    title: 'Ensambladora de Muebles (EPQ)',
-    statement: 'Una fábrica de muebles tiene una demanda de 3,000 mesas. Costo de inicio $150, mantenimiento $1.50. Tasa de producción 5,000. Encuentre el tamaño de lote y el inventario máximo.',
-    method: 'epq',
-    D: 3000,
-    Co: 150,
-    Ch: 1.5,
-    Cf: '',
-    p: 5000,
-    d: 3000
-  }
-];
 
 export default function InventoryModule() {
   const [selectedMethod, setSelectedMethod] = useState('eoq');
@@ -80,12 +16,26 @@ export default function InventoryModule() {
   const [Cf, setCf] = useState(5);
   const [p, setP] = useState(2000);
   const [d, setdRate] = useState(1000);
+  // EOQ extra
+  const [diasHabiles, setDiasHabiles] = useState(365);
+  const [L, setL] = useState(0);
+  const [C, setC] = useState(0);
 
   // ABC States
   const [abcItems, setAbcItems] = useState([
     { id: '1', name: 'Articulo 1', D: 1000, C: 50 },
     { id: '2', name: 'Articulo 2', D: 500, C: 10 }
   ]);
+  
+  const [examplesList, setExamplesList] = useState([]);
+  
+  useEffect(() => {
+    setExamplesList(generateInventoryExamples(selectedMethod));
+  }, [selectedMethod]);
+
+  const handleGenerateExamples = () => {
+    setExamplesList(generateInventoryExamples(selectedMethod));
+  };
   
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -104,6 +54,9 @@ export default function InventoryModule() {
       setCf(ex.Cf);
       setP(ex.p);
       setdRate(ex.d);
+      setDiasHabiles(ex.diasHabiles || 365);
+      setL(ex.L || 0);
+      setC(ex.C || 0);
     } else {
       setAbcItems(ex.abcItems);
       setActiveTab('input');
@@ -120,7 +73,7 @@ export default function InventoryModule() {
     try {
       let res;
       if (selectedMethod === 'eoq') {
-        res = solveEOQ(Number(D), Number(Co), Number(Ch));
+        res = solveEOQ(Number(D), Number(Co), Number(Ch), Number(diasHabiles), Number(L), Number(C));
       } else if (selectedMethod === 'eoq-backorders') {
         res = solveEOQBackorders(Number(D), Number(Co), Number(Ch), Number(Cf));
       } else if (selectedMethod === 'epq') {
@@ -140,7 +93,7 @@ export default function InventoryModule() {
 
   const handleExport = async () => {
     if (result) {
-      const inputs = { D: Number(D), Co: Number(Co), Ch: Number(Ch), Cf: Number(Cf), p: Number(p), d: Number(d), abcItems, statement };
+      const inputs = { D: Number(D), Co: Number(Co), Ch: Number(Ch), Cf: Number(Cf), p: Number(p), d: Number(d), C: Number(C), abcItems, statement };
       await exportInventoryToPDF(selectedMethod, inputs, result, chartRef);
     }
   };
@@ -195,12 +148,12 @@ export default function InventoryModule() {
               </div>
 
               <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo de Ordenar (Co):</label>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo de Orden (K):</label>
                 <input type="number" value={Co} onChange={e => setCo(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
               </div>
 
               <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo de Mantener (Ch):</label>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo de Mantener (h):</label>
                 <input type="number" step="0.1" value={Ch} onChange={e => setCh(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
               </div>
             </>
@@ -211,6 +164,26 @@ export default function InventoryModule() {
               <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo Faltante (Cf):</label>
               <input type="number" step="0.1" value={Cf} onChange={e => setCf(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
             </div>
+          )}
+
+          {/* Campos exclusivos de EOQ: días hábiles, tiempo de entrega, costo unitario */}
+          {selectedMethod === 'eoq' && (
+            <>
+              <div style={{ width: '100%', marginTop: '10px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo Unitario (C):</label>
+                <input type="number" min="0" value={C} onChange={e => setC(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>Si lo dejas en 0, no sumará costo de compra al total.</span>
+              </div>
+              <div style={{ width: '100%', marginTop: '10px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Días hábiles por año:</label>
+                <input type="number" value={diasHabiles} onChange={e => setDiasHabiles(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
+              </div>
+              <div style={{ width: '100%', marginTop: '10px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tiempo de entrega — L (días):</label>
+                <input type="number" min="0" value={L} onChange={e => setL(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>Deja en 0 si no aplica punto de reorden</span>
+              </div>
+            </>
           )}
 
           {selectedMethod === 'epq' && (
@@ -231,9 +204,17 @@ export default function InventoryModule() {
             </button>
 
             <div style={{ width: '100%', marginTop: '15px' }}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '5px', display: 'block' }}>Ejemplos precargados:</label>
-              <div className="exercise-list" style={{ marginTop: '5px' }}>
-                {preloadedExamples.map((ex) => (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <label style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>Ejemplos precargados:</label>
+                <button 
+                  onClick={handleGenerateExamples}
+                  style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', border: '1px solid #3b82f6', borderRadius: '4px', padding: '4px 8px', fontSize: '0.75rem', cursor: 'pointer' }}>
+                  ↻ Generar Nuevos
+                </button>
+              </div>
+              
+              <div className="exercise-list">
+                {examplesList.map(ex => (
                   <div
                     key={ex.id}
                     className="exercise-card"
@@ -349,10 +330,12 @@ export default function InventoryModule() {
             <div id="pdf-export-content" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
               <ResultCard title="Lote Óptimo (Q*)" value={result.Q.toFixed(2)} desc="Cantidad a ordenar/producir" color="#10b981" />
-              <ResultCard title="Costo Total Anual (CT)" value={`$${result.CT.toFixed(2)}`} desc="Costo mínimo optimizado" color="#3b82f6" />
+              <ResultCard title="Costo Total Anual (TC)" value={`$${result.TC.toFixed(2)}`} desc="Costo mínimo optimizado" color="#3b82f6" />
               
-              {result.N !== undefined && <ResultCard title="Número Pedidos (N)" value={result.N.toFixed(2)} desc="Pedidos por año" color="#f59e0b" />}
-              {result.T_days !== undefined && <ResultCard title="Tiempo (T)" value={`${result.T_days.toFixed(2)} días`} desc="Tiempo entre pedidos" color="#8b5cf6" />}
+              {result.N !== undefined && <ResultCard title="Número de Órdenes (N)" value={result.N.toFixed(2)} desc="Órdenes al año" color="#f59e0b" />}
+              {result.T_days !== undefined && <ResultCard title="Tiempo entre Órdenes (T)" value={`${result.T_days.toFixed(2)} días`} desc="Días hábiles entre pedidos" color="#8b5cf6" />}
+              {result.d_daily !== undefined && <ResultCard title="Demanda por Día (d)" value={result.d_daily.toFixed(4)} desc="Unidades/día hábil" color="#06b6d4" />}
+              {result.R !== null && result.R !== undefined && <ResultCard title="Punto de Reorden (R)" value={result.R.toFixed(2)} desc="Pedir cuando inventario = R" color="#f97316" />}
               
               {result.S !== undefined && <ResultCard title="Faltante Máximo (S*)" value={result.S.toFixed(2)} desc="Unidades permitidas faltar" color="#ef4444" />}
               {result.Imax !== undefined && <ResultCard title="Inventario Máx (Imax)" value={result.Imax.toFixed(2)} desc="Nivel máximo de stock" color="#059669" />}
@@ -396,9 +379,25 @@ export default function InventoryModule() {
                     labelFormatter={t => 't = ' + parseFloat(t).toFixed(3)}
                   />
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                  {/* Línea de referencia en y=0 para modelos con faltantes */}
+                  {/* Línea en y=0 para EOQ con faltantes */}
                   {selectedMethod === 'eoq-backorders' && (
                     <ReferenceLine y={0} stroke="#475569" strokeDasharray="4 4" />
+                  )}
+                  {/* Punto de Reorden R — solo EOQ con L > 0 */}
+                  {selectedMethod === 'eoq' && result.R !== null && result.R !== undefined && (
+                    <ReferenceLine
+                      y={result.R}
+                      stroke="#f97316"
+                      strokeWidth={2}
+                      strokeDasharray="6 3"
+                      label={{
+                        value: `R = ${result.R.toFixed(2)}`,
+                        position: 'insideTopLeft',
+                        fill: '#f97316',
+                        fontSize: 11,
+                        fontWeight: 'bold',
+                      }}
+                    />
                   )}
                   <Line
                     type="linear"
@@ -412,8 +411,8 @@ export default function InventoryModule() {
                   <Line
                     type="monotone"
                     dataKey="promedio"
-                    name="Promedio"
-                    stroke="#f59e0b"
+                    name="Promedio (Q/2)"
+                    stroke="#06b6d4"
                     strokeWidth={2}
                     strokeDasharray="6 3"
                     dot={false}

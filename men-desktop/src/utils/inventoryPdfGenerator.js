@@ -183,12 +183,13 @@ export async function exportInventoryToPDF(method, inputs, result, chartRef = nu
 
     const inputsBody = [
       ['Demanda (D)', String(inputs.D)],
-      ['Costo de Ordenar (Co)', String(inputs.Co)],
-      ['Costo de Mantener (Ch)', String(inputs.Ch)],
+      ['Costo de Orden (K)', String(inputs.Co)],
+      ['Costo de Mantener (h)', String(inputs.Ch)],
     ];
     if (inputs.Cf) inputsBody.push(['Costo Faltante (Cf)', String(inputs.Cf)]);
     if (inputs.p)  inputsBody.push(['Tasa de Produccion (p)', String(inputs.p)]);
     if (inputs.d)  inputsBody.push(['Tasa de Demanda (d)', String(inputs.d)]);
+    if (inputs.C)  inputsBody.push(['Costo Unitario (C)', String(inputs.C)]);
 
     autoTable(doc, {
       startY: y,
@@ -208,12 +209,14 @@ export async function exportInventoryToPDF(method, inputs, result, chartRef = nu
 
     const resultsBody = [
       ['Cantidad Optima (Q*)', result.Q.toFixed(2)],
-      ['Costo Total (CT)',     '$' + result.CT.toFixed(2)],
+      ['Costo Total Anual (TC)', '$' + (result.TC ?? result.CT).toFixed(2)],
     ];
-    if (result.N       !== undefined) resultsBody.push(['Numero de Pedidos (N)',       result.N.toFixed(2)]);
-    if (result.T_days  !== undefined) resultsBody.push(['Tiempo entre pedidos (T)',    result.T_days.toFixed(2) + ' dias']);
-    if (result.S       !== undefined) resultsBody.push(['Faltante Maximo (S*)',        result.S.toFixed(2)]);
-    if (result.Imax    !== undefined) resultsBody.push(['Inventario Maximo (Imax)',    result.Imax.toFixed(2)]);
+    if (result.N       !== undefined) resultsBody.push(['Numero de Ordenes (N)',        result.N.toFixed(2)]);
+    if (result.T_days  !== undefined) resultsBody.push(['Tiempo entre Ordenes (T)',     result.T_days.toFixed(2) + ' dias habiles']);
+    if (result.d_daily !== undefined) resultsBody.push(['Demanda por Dia (d)',          result.d_daily.toFixed(4) + ' und/dia']);
+    if (result.R !== null && result.R !== undefined) resultsBody.push(['Punto de Reorden (R)', result.R.toFixed(2) + ' unidades']);
+    if (result.S       !== undefined) resultsBody.push(['Faltante Maximo (S*)',         result.S.toFixed(2)]);
+    if (result.Imax    !== undefined) resultsBody.push(['Inventario Maximo (Imax)',     result.Imax.toFixed(2)]);
 
     autoTable(doc, {
       startY: y,
