@@ -127,8 +127,39 @@ export function generateQueueExamples(method, count = 5) {
         id: i,
         title: `Ejemplo M/D/1 ${i}`,
         statement: `${place} atiende a ${lambda} ${entity}/hora de forma constante (tiempo de servicio determinístico). El servidor procesa exactamente ${mu} ${entity}/hora. Calcule la longitud de la cola.`,
-        modelType: 'md1',
+        method: 'md1',
         lambda, mu, s: 1, maxK: '', maxN: ''
+      });
+    } else if (method === 'birth-death') {
+      let N = randomInt(3, 6);
+      let bLambdas = Array.from({length: N}, () => randomInt(5, 20));
+      let bMus = [0, ...Array.from({length: N}, () => randomInt(10, 25))]; // Index 1 to N are the actual mu values
+      examples.push({
+        id: i,
+        title: `Nacimiento y Muerte ${i}`,
+        statement: `Un sistema con capacidad máxima de ${N} estados donde las tasas de llegada (λ) y servicio (μ) varían según el estado del sistema. Determine la probabilidad de cada estado y las medidas de desempeño generales.`,
+        method: 'birth-death',
+        bdN: N, bdLambdas: bLambdas, bdMus: bMus
+      });
+    } else if (method === 'markov') {
+      let N = randomInt(3, 5);
+      let matrix = [];
+      for (let r = 0; r < N; r++) {
+        let row = Array.from({length: N}, () => Math.random());
+        let sum = row.reduce((a,b) => a+b, 0);
+        matrix.push(row.map(x => Number((x/sum).toFixed(2))));
+        // Adjust last element to ensure sum is exactly 1
+        let actSum = matrix[r].slice(0, N-1).reduce((a,b) => a+b, 0);
+        matrix[r][N-1] = Number((1 - actSum).toFixed(2));
+      }
+      let initial = Array(N).fill(0);
+      initial[0] = 1;
+      examples.push({
+        id: i,
+        title: `Cadena de Markov ${i}`,
+        statement: `Se modela un proceso estocástico con ${N} estados posibles. Dada la matriz de transición P y asumiendo que inicia en el estado 0, proyecte el estado futuro en n iteraciones y determine las probabilidades de estado estable.`,
+        method: 'markov',
+        markovN: N, markovMatrix: matrix, markovInitial: initial, markovSteps: randomInt(3, 10)
       });
     } else {
        // fallback para otros

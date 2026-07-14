@@ -236,3 +236,229 @@ export function solveMMs(lambda, mu, s) {
 
   return { rho, p0, l, lq, w, wq, steps, conclusion, pnData };
 }
+
+export function solveBirthDeath(lambdas, mus, N) {
+  let c = new Array(N + 1).fill(0);
+  c[0] = 1;
+  let sumC = 1;
+  let mathC = "C_0 = 1 \\\\ ";
+  
+  for (let n = 1; n <= N; n++) {
+    c[n] = c[n-1] * (Number(lambdas[n-1]) / Number(mus[n]));
+    sumC += c[n];
+    if (n <= 3) {
+      mathC += `C_{${n}} = C_{${n-1}} \\frac{\\lambda_{${n-1}}}{\\mu_{${n}}} = ${c[n].toFixed(4)} \\\\ `;
+    } else if (n === 4 && N > 4) {
+      mathC += "\\dots \\\\ ";
+    }
+  }
+
+  const p0 = 1 / sumC;
+  let p = new Array(N + 1).fill(0);
+  let mathP = `P_0 = \\frac{1}{\\sum C_n} = \\frac{1}{${sumC.toFixed(4)}} = ${p0.toFixed(4)} \\\\ `;
+  
+  for (let n = 0; n <= N; n++) {
+    p[n] = c[n] * p0;
+    if (n > 0 && n <= 3) {
+      mathP += `P_{${n}} = C_{${n}} P_0 = ${p[n].toFixed(4)} \\\\ `;
+    }
+  }
+
+  let l = 0;
+  for (let n = 1; n <= N; n++) {
+    l += n * p[n];
+  }
+
+  let lambdaEfec = 0;
+  for (let n = 0; n < N; n++) {
+    lambdaEfec += Number(lambdas[n]) * p[n];
+  }
+
+  const w = lambdaEfec > 0 ? l / lambdaEfec : 0;
+
+  const steps = [
+    {
+      title: "Paso 1: Cálculo de Coeficientes (C_n)",
+      math: mathC,
+      desc: "Se calculan los coeficientes C_n basados en las tasas de nacimiento y muerte para cada estado."
+    },
+    {
+      title: "Paso 2: Probabilidades de Estado (P_n)",
+      math: mathP,
+      desc: "Se normalizan los coeficientes para encontrar la probabilidad de que el sistema esté en cada estado n."
+    },
+    {
+      title: "Paso 3: Número esperado en el sistema (L)",
+      math: `L = \\sum_{n=1}^{${N}} n P_n = ${l.toFixed(4)}`,
+      desc: "El promedio de clientes en el sistema."
+    },
+    {
+      title: "Paso 4: Tasa Efectiva y Tiempo Promedio (W)",
+      math: `\\lambda_{efec} = \\sum \\lambda_n P_n = ${lambdaEfec.toFixed(4)} \\\\ W = \\frac{L}{\\lambda_{efec}} = ${w.toFixed(4)}`,
+      desc: "El tiempo promedio que un cliente pasa en el sistema."
+    }
+  ];
+
+  const pnData = [];
+  for (let n = 0; n <= N; n++) {
+    pnData.push({ n: n.toString(), Probabilidad: Number(p[n].toFixed(4)) });
+  }
+
+  const conclusion = `En este proceso de nacimiento y muerte con un máximo de ${N} estados, el sistema estará vacío el ${(p0 * 100).toFixed(2)}% del tiempo. En promedio, habrá ${l.toFixed(2)} clientes en el sistema, con un tiempo de permanencia medio de ${w.toFixed(2)} unidades. La tasa efectiva de entrada es ${lambdaEfec.toFixed(2)}.`;
+
+  return { p0, l, w, lambdaEfec, p, steps, conclusion, pnData };
+}
+
+// Multiplicación de matrices
+function multiplyMatrix(A, B) {
+  let aNumRows = A.length, aNumCols = A[0].length,
+      bNumRows = B.length, bNumCols = B[0].length,
+      m = new Array(aNumRows); 
+  for (let r = 0; r < aNumRows; ++r) {
+    m[r] = new Array(bNumCols).fill(0);
+    for (let c = 0; c < bNumCols; ++c) {
+      for (let i = 0; i < aNumCols; ++i) {
+        m[r][c] += A[r][i] * B[i][c];
+      }
+    }
+  }
+  return m;
+}
+
+// Eliminación de Gauss-Jordan para AX = B
+function solveLinearSystem(A, B) {
+  const n = A.length;
+  let M = [];
+  for (let i = 0; i < n; i++) {
+    M.push([...A[i], B[i]]);
+  }
+
+  for (let i = 0; i < n; i++) {
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(M[k][i]) > Math.abs(M[maxRow][i])) {
+        maxRow = k;
+      }
+    }
+    let tmp = M[i];
+    M[i] = M[maxRow];
+    M[maxRow] = tmp;
+
+    if (Math.abs(M[i][i]) < 1e-10) continue; 
+
+    for (let k = i + 1; k < n; k++) {
+      let c = -M[k][i] / M[i][i];
+      for (let j = i; j <= n; j++) {
+        if (i === j) {
+          M[k][j] = 0;
+        } else {
+          M[k][j] += c * M[i][j];
+        }
+      }
+    }
+  }
+
+  let x = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    if (Math.abs(M[i][i]) < 1e-10) {
+      x[i] = 0;
+      continue;
+    }
+    x[i] = M[i][n] / M[i][i];
+    for (let k = i - 1; k >= 0; k--) {
+      M[k][n] -= M[k][i] * x[i];
+    }
+  }
+  return x;
+}
+
+export function solveMarkovChain(matrix, initialVector, stepsCount) {
+  const n = matrix.length;
+  
+  // 1. Probabilidades de estado a los n pasos: P(n) = P(0) * P^n
+  let P_n = matrix;
+  for (let i = 1; i < stepsCount; i++) {
+    P_n = multiplyMatrix(P_n, matrix);
+  }
+  
+  let stateAtN = multiplyMatrix([initialVector], P_n)[0];
+
+  // 2. Probabilidades de estado estable (pi P = pi, sum(pi) = 1)
+  let A = [];
+  for (let i = 0; i < n; i++) {
+    A[i] = new Array(n).fill(0);
+    for (let j = 0; j < n; j++) {
+      A[i][j] = matrix[j][i] - (i === j ? 1 : 0);
+    }
+  }
+  for (let j = 0; j < n; j++) {
+    A[n - 1][j] = 1;
+  }
+  let B = new Array(n).fill(0);
+  B[n - 1] = 1;
+
+  let steadyState = solveLinearSystem(A, B);
+
+  // 3. Tiempos medios de primer paso (M_ij)
+  let firstPassage = [];
+  for (let i = 0; i < n; i++) {
+    firstPassage.push(new Array(n).fill(0));
+  }
+
+  for (let j = 0; j < n; j++) {
+    firstPassage[j][j] = steadyState[j] > 1e-8 ? 1 / steadyState[j] : Infinity;
+    
+    let subA = [];
+    let subB = [];
+    let stateIndices = [];
+    for(let i=0; i<n; i++) {
+      if(i !== j) stateIndices.push(i);
+    }
+    
+    for (let i = 0; i < stateIndices.length; i++) {
+      let origI = stateIndices[i];
+      let row = new Array(stateIndices.length).fill(0);
+      for (let k = 0; k < stateIndices.length; k++) {
+        let origK = stateIndices[k];
+        row[k] = (i === k ? 1 : 0) - matrix[origI][origK];
+      }
+      subA.push(row);
+      subB.push(1);
+    }
+    
+    if (subA.length > 0) {
+      let sol = solveLinearSystem(subA, subB);
+      for (let i = 0; i < stateIndices.length; i++) {
+        firstPassage[stateIndices[i]][j] = sol[i];
+      }
+    }
+  }
+
+  const steps = [
+    {
+      title: `Paso 1: Estado en t = ${stepsCount}`,
+      math: `\\pi(${stepsCount}) = \\pi(0) P^{${stepsCount}}`,
+      desc: `Calculando la matriz de transición a la potencia ${stepsCount} y multiplicando por el vector de estado inicial.`
+    },
+    {
+      title: "Paso 2: Probabilidades de Estado Estable (π)",
+      math: "\\pi P = \\pi, \\quad \\sum \\pi_i = 1",
+      desc: "Resolviendo el sistema de ecuaciones lineales para encontrar las probabilidades a largo plazo."
+    },
+    {
+      title: "Paso 3: Tiempos Medios de Primer Paso (M_ij)",
+      math: "M_{ij} = 1 + \\sum_{k \\neq j} P_{ik} M_{kj}, \\quad M_{jj} = \\frac{1}{\\pi_j}",
+      desc: "El número promedio de pasos necesarios para llegar al estado j desde el estado i por primera vez."
+    }
+  ];
+
+  const pnData = [];
+  for (let i = 0; i < n; i++) {
+    pnData.push({ n: `E${i}`, Probabilidad: Number(steadyState[i].toFixed(4)) });
+  }
+
+  const conclusion = `La cadena de Markov converge a su estado estable a largo plazo. A los ${stepsCount} pasos, la probabilidad de estar en cada estado está dada por el vector de estado en t=${stepsCount}. El tiempo de retorno esperado para cada estado j está dado por M_jj.`;
+
+  return { stateAtN, steadyState, firstPassage, steps, conclusion, pnData };
+}
+

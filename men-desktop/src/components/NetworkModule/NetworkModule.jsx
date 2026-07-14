@@ -160,8 +160,20 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
               marker = 'url(#arrow-blocked)';
             }
           } else if (selectedMethod === 'cpm' || selectedMethod === 'pert') {
-            const durationValue = frameData && frameData.edgeDurations && frameData.edgeDurations[e.id] !== undefined ? frameData.edgeDurations[e.id] : (e.duration ?? e.cost);
-            label = `D: ${Number(durationValue).toFixed(2)}`;
+            label = ''; // Ocultar D: en aristas para CPM/PERT para evitar confusión
+          }
+
+          if (label === '') {
+            return (
+              <g key={e.id}>
+                <line 
+                  x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} 
+                  stroke={strokeColor} 
+                  strokeWidth={strokeWidth} 
+                  markerEnd={marker}
+                />
+              </g>
+            );
           }
 
           return (
@@ -278,6 +290,11 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
               {topLabel && (
                 <text x={p.x} y={p.y - ((selectedMethod === 'cpm' || selectedMethod === 'pert') ? 22 : 25)} fill={topLabelColor} fontSize="12" textAnchor="middle" fontWeight="bold">
                   {topLabel}
+                </text>
+              )}
+              {((selectedMethod === 'cpm' || selectedMethod === 'pert')) && (
+                <text x={p.x} y={p.y + 20} fill="#cbd5e1" fontSize="11" textAnchor="middle">
+                  D: {frameData?.nodeDurations?.[n.id] !== undefined ? frameData.nodeDurations[n.id].toFixed(2) : (n.duration !== undefined ? Number(n.duration).toFixed(2) : '0.00')}
                 </text>
               )}
               {bottomLabel && (

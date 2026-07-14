@@ -232,12 +232,18 @@ export async function exportQueueToPDF(method, inputs, result) {
   doc.text('Parametros de Entrada', margin, y);
   y += 8;
 
-  const inputsBody = [
-    ['Tasa de Llegada (lambda)',  String(inputs.lambda)],
-    ['Tasa de Servicio (mu)',     String(inputs.mu)],
-  ];
-  if (inputs.k) inputsBody.push(['Capacidad del Sistema (K)', String(inputs.k)]);
-  if (inputs.s) inputsBody.push(['Numero de Servidores (s)',  String(inputs.s)]);
+  let inputsBody = [];
+  if (method === 'birth-death') {
+    inputsBody.push(['Capacidad del Sistema (N)', String(inputs.bdN)]);
+  } else if (method === 'markov') {
+    inputsBody.push(['Estados (N)', String(inputs.markovN)]);
+    inputsBody.push(['Iteraciones (n)', String(inputs.markovSteps)]);
+  } else {
+    inputsBody.push(['Tasa de Llegada (lambda)',  String(inputs.lambda)]);
+    inputsBody.push(['Tasa de Servicio (mu)',     String(inputs.mu)]);
+    if (inputs.k) inputsBody.push(['Capacidad del Sistema (K)', String(inputs.k)]);
+    if (inputs.s) inputsBody.push(['Numero de Servidores (s)',  String(inputs.s)]);
+  }
 
   autoTable(doc, {
     startY: y,
@@ -258,18 +264,27 @@ export async function exportQueueToPDF(method, inputs, result) {
   doc.text('Resultados', margin, y);
   y += 8;
 
-  const resultsBody = [
-    ['Utilizacion del sistema (rho)', (result.rho * 100).toFixed(2) + ' %'],
-    ['Probabilidad de sistema vacio (P0)', (result.p0 * 100).toFixed(2) + ' %'],
-  ];
-  if (result.pk !== undefined) {
-    resultsBody.push(['Probabilidad de sistema lleno (Pk)', (result.pk * 100).toFixed(2) + ' %']);
+  let resultsBody = [];
+  if (method === 'markov') {
+    resultsBody.push(['Estado a los n pasos', 'Ver reporte detallado (seccion final)']);
+    resultsBody.push(['Probabilidades Estado Estable', 'Ver reporte detallado (seccion final)']);
+  } else if (method === 'birth-death') {
+    resultsBody.push(['Probabilidad de sistema vacio (P0)', (result.p0 * 100).toFixed(2) + ' %']);
+    resultsBody.push(['Clientes promedio en sistema (L)',  result.l.toFixed(3)]);
+    resultsBody.push(['Tiempo promedio en sistema (W)',    result.w.toFixed(3)]);
     resultsBody.push(['Tasa efectiva de llegada (lambda efec)', result.lambdaEfec.toFixed(3)]);
+  } else {
+    resultsBody.push(['Utilizacion del sistema (rho)', (result.rho * 100).toFixed(2) + ' %']);
+    resultsBody.push(['Probabilidad de sistema vacio (P0)', (result.p0 * 100).toFixed(2) + ' %']);
+    if (result.pk !== undefined) {
+      resultsBody.push(['Probabilidad de sistema lleno (Pk)', (result.pk * 100).toFixed(2) + ' %']);
+      resultsBody.push(['Tasa efectiva de llegada (lambda efec)', result.lambdaEfec.toFixed(3)]);
+    }
+    resultsBody.push(['Clientes promedio en sistema (L)',  result.l.toFixed(3)]);
+    resultsBody.push(['Clientes promedio en cola (Lq)',    result.lq.toFixed(3)]);
+    resultsBody.push(['Tiempo promedio en sistema (W)',    result.w.toFixed(3)]);
+    resultsBody.push(['Tiempo promedio en cola (Wq)',      result.wq.toFixed(3)]);
   }
-  resultsBody.push(['Clientes promedio en sistema (L)',  result.l.toFixed(3)]);
-  resultsBody.push(['Clientes promedio en cola (Lq)',    result.lq.toFixed(3)]);
-  resultsBody.push(['Tiempo promedio en sistema (W)',    result.w.toFixed(3)]);
-  resultsBody.push(['Tiempo promedio en cola (Wq)',      result.wq.toFixed(3)]);
 
   autoTable(doc, {
     startY: y,
@@ -347,7 +362,49 @@ export async function exportQueueToPDF(method, inputs, result) {
     doc.setDrawColor(148, 163, 184);
     doc.roundedRect(margin, y - 6, contentW, boxH, 4, 4, 'FD');
     doc.text(conclLines, margin + 8, y + 4);
-    y += boxH + 8;
+    y += boxH + 18;
+  }
+
+  // ── MATRICES ADICIONALES (MARKOV) ───────────────────────────────────────
+  if (method === 'markov') {
+    checkPage(120);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Matriz de Transicion P', margin, y);
+    y += 8;
+
+    const n = inputs.markovN;
+    const pHead = [''].concat(Array.from({length: n}, (_, i) => 'E' + i));
+    const pBody = inputs.markovMatrix.map((row, i) => ['E' + i].concat(row.map(v => v.toFixed(4))));
+    
+    autoTable(doc, {
+      startY: y, head: [pHead], body: pBody, theme: 'grid',
+      styles: { font: 'helvetica', fontSize: 10, halign: 'center' },
+      headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+      margin: { left: margin, right: margin }
+    });
+    y = doc.lastAutoTable.finalY + 18;
+
+    checkPage(120);
+    doc.text('Probabilidades de Estado', margin, y);
+    y += 8;
+    
+    const stateHead = ['Estado', 'Inicial π(0)', `En paso n=${inputs.markovSteps}`, 'Estable π(∞)'];
+    const stateBody = Array.from({length: n}).map((_, i) => [
+      'E' + i, 
+      inputs.markovInitial[i].toFixed(4), 
+      result.stateAtN[i].toFixed(4), 
+      result.steadyState[i].toFixed(4)
+    ]);
+
+    autoTable(doc, {
+      startY: y, head: [stateHead], body: stateBody, theme: 'grid',
+      styles: { font: 'helvetica', fontSize: 10, halign: 'center' },
+      headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+      margin: { left: margin, right: margin }
+    });
+    y = doc.lastAutoTable.finalY + 18;
   }
 
   // ── PIE DE PÁGINA ───────────────────────────────────────────────────────

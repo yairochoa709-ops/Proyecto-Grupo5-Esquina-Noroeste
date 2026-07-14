@@ -91,15 +91,16 @@ function drawGraph(doc, exercise, frameData, method, startY) {
     if (method === 'Dijkstra' || method === 'Kruskal') label = `${e.cost}`;
     else if (method === 'Ford-Fulkerson') label = `${capDisp}`;
     else if (method === 'CPM' || method === 'PERT') {
-      const durationValue = frameData && frameData.edgeDurations && frameData.edgeDurations[e.id] !== undefined ? frameData.edgeDurations[e.id] : (e.duration ?? e.cost);
-      label = `${Number(durationValue).toFixed(2)}`;
+      label = ''; // Ocultar etiqueta en aristas para CPM/PERT para evitar confusión
     }
     
-    doc.setFillColor(255, 255, 255);
-    doc.rect(midX - 3, midY - 2, 6, 4, 'F');
-    doc.setFontSize(7);
-    doc.setTextColor(...color);
-    doc.text(label, midX, midY + 1, { align: 'center' });
+    if (label !== '') {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(midX - 3, midY - 2, 6, 4, 'F');
+      doc.setFontSize(7);
+      doc.setTextColor(...color);
+      doc.text(label, midX, midY + 1, { align: 'center' });
+    }
   });
 
   // Nodos
@@ -156,6 +157,7 @@ function drawGraph(doc, exercise, frameData, method, startY) {
     let topLabel = '';
     let bottomLabel = '';
     let sideLabel = '';
+    let durationLabel = '';
     
     if (method === 'Dijkstra' && frameData && frameData.nodeStates) {
       const state = frameData.nodeStates[n.id];
@@ -165,17 +167,22 @@ function drawGraph(doc, exercise, frameData, method, startY) {
     } else if (method === 'Kruskal' && frameData && frameData.nodeStates) {
       const state = frameData.nodeStates[n.id];
       if (state) topLabel = state.status === 'C' ? '[C]' : "[C']";
-    } else if ((method === 'CPM' || method === 'PERT') && frameData && frameData.nodeTimings) {
-      const state = frameData.nodeTimings[n.id];
-      if (state) {
-        const ic = state.earliestStart !== null ? state.earliestStart.toFixed(2) : '-';
-        const tc = state.earliestFinish !== null ? state.earliestFinish.toFixed(2) : '-';
-        const il = state.latestStart !== null ? state.latestStart.toFixed(2) : '-';
-        const tl = state.latestFinish !== null ? state.latestFinish.toFixed(2) : '-';
-        topLabel = `${ic} / ${tc}`;
-        bottomLabel = `${il} / ${tl}`;
-        if (state.slack !== null) {
-          sideLabel = `H: ${state.slack.toFixed(0)}`;
+    } else if (method === 'CPM' || method === 'PERT') {
+      const dur = frameData?.nodeDurations?.[n.id] !== undefined ? frameData.nodeDurations[n.id] : (n.duration ?? 0);
+      durationLabel = `D: ${Number(dur).toFixed(2)}`;
+      
+      if (frameData && frameData.nodeTimings) {
+        const state = frameData.nodeTimings[n.id];
+        if (state) {
+          const ic = state.earliestStart !== null ? state.earliestStart.toFixed(2) : '-';
+          const tc = state.earliestFinish !== null ? state.earliestFinish.toFixed(2) : '-';
+          const il = state.latestStart !== null ? state.latestStart.toFixed(2) : '-';
+          const tl = state.latestFinish !== null ? state.latestFinish.toFixed(2) : '-';
+          topLabel = `${ic} / ${tc}`;
+          bottomLabel = `${il} / ${tl}`;
+          if (state.slack !== null) {
+            sideLabel = `H: ${state.slack.toFixed(0)}`;
+          }
         }
       }
     }
@@ -188,12 +195,17 @@ function drawGraph(doc, exercise, frameData, method, startY) {
     if (bottomLabel) {
       doc.setFontSize(7);
       doc.setTextColor(15, 23, 42);
-      doc.text(bottomLabel, nx, ny + nr + 3, { align: 'center' });
+      doc.text(bottomLabel, nx, ny + nr + 6, { align: 'center' });
     }
     if (sideLabel) {
       doc.setFontSize(7);
       doc.setTextColor(107, 33, 168);
       doc.text(sideLabel, nx + nr + 2, ny, { align: 'left', baseline: 'middle' });
+    }
+    if (durationLabel) {
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text(durationLabel, nx, ny + nr + 2, { align: 'center' });
     }
   });
 

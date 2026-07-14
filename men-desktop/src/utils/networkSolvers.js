@@ -113,7 +113,8 @@ function solveCriticalPath(exercise, mode) {
     path: [],
     criticalPath: [],
     criticalEdges: [],
-    edgeDurations: {}
+    edgeDurations: {},
+    nodeDurations: {}
   };
   frames.push(createFrame(baseState, {}));
 
@@ -153,6 +154,10 @@ function solveCriticalPath(exercise, mode) {
       nodeDurations[original.id] = Number(original.duration ?? original.cost ?? 0);
     });
   }
+  
+  // Guardar en el estado base para la UI
+  baseState.nodeDurations = JSON.parse(JSON.stringify(nodeDurations));
+
 
   // === FORWARD PASS (IC / TC) ===
   augmentedNodes.forEach(n => {

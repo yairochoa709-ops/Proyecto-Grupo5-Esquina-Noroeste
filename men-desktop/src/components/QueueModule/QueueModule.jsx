@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { solveMM1, solveMM1K, solveMMs } from '../../utils/queueSolvers';
+import { solveMM1, solveMM1K, solveMMs, solveBirthDeath, solveMarkovChain } from '../../utils/queueSolvers';
 import { exportQueueToPDF } from '../../utils/queuePdfGenerator';
 import { generateQueueExamples } from '../../utils/exampleGenerators';
 import 'katex/dist/katex.min.css';
@@ -22,6 +22,17 @@ export default function QueueModule() {
 
   const [examplesList, setExamplesList] = useState([]);
 
+  // Birth and Death states
+  const [bdN, setBdN] = useState(5);
+  const [bdLambdas, setBdLambdas] = useState(Array(5).fill(10));
+  const [bdMus, setBdMus] = useState(Array(6).fill(15)); // mus[0] is unused usually, but we keep length bdN+1 so index matches
+
+  // Markov Chains states
+  const [markovN, setMarkovN] = useState(3);
+  const [markovMatrix, setMarkovMatrix] = useState([[0.5, 0.5, 0], [0.2, 0.6, 0.2], [0, 0.5, 0.5]]);
+  const [markovInitial, setMarkovInitial] = useState([1, 0, 0]);
+  const [markovSteps, setMarkovSteps] = useState(5);
+
   useEffect(() => {
     setExamplesList(generateQueueExamples(selectedMethod));
   }, [selectedMethod]);
@@ -32,11 +43,23 @@ export default function QueueModule() {
 
   const loadExample = (ex) => {
     setSelectedMethod(ex.method);
-    setLambda(ex.lambda);
-    setMu(ex.mu);
-    setK(ex.k);
-    setS(ex.s);
-    setTimeUnit(ex.timeUnit);
+    setLambda(ex.lambda || 10);
+    setMu(ex.mu || 15);
+    setK(ex.k || 5);
+    setS(ex.s || 2);
+    setTimeUnit(ex.timeUnit || 'Horas');
+    
+    if (ex.method === 'birth-death') {
+      setBdN(ex.bdN || 5);
+      setBdLambdas(ex.bdLambdas || Array(5).fill(10));
+      setBdMus(ex.bdMus || Array(6).fill(15));
+    } else if (ex.method === 'markov') {
+      setMarkovN(ex.markovN || 3);
+      setMarkovMatrix(ex.markovMatrix || [[0.5, 0.5, 0], [0.2, 0.6, 0.2], [0, 0.5, 0.5]]);
+      setMarkovInitial(ex.markovInitial || [1, 0, 0]);
+      setMarkovSteps(ex.markovSteps || 5);
+    }
+    
     setStatement(ex.statement);
     setShowStatement(true);
     setResult(null);
@@ -62,19 +85,25 @@ export default function QueueModule() {
     setError('');
     setResult(null);
     try {
-      const lVal = Number(lambda);
-      const mVal = Number(mu);
-      const kVal = Number(k);
-      const sVal = Number(s);
       let res;
-      if (selectedMethod === 'mm1') {
-        res = solveMM1(lVal, mVal);
-      } else if (selectedMethod === 'mm1k') {
-        res = solveMM1K(lVal, mVal, kVal);
-      } else if (selectedMethod === 'mms') {
-        res = solveMMs(lVal, mVal, sVal);
+      if (selectedMethod === 'birth-death') {
+        res = solveBirthDeath(bdLambdas, bdMus, bdN);
+      } else if (selectedMethod === 'markov') {
+        res = solveMarkovChain(markovMatrix, markovInitial, Number(markovSteps));
+      } else {
+        const lVal = Number(lambda);
+        const mVal = Number(mu);
+        const kVal = Number(k);
+        const sVal = Number(s);
+        if (selectedMethod === 'mm1') {
+          res = solveMM1(lVal, mVal);
+        } else if (selectedMethod === 'mm1k') {
+          res = solveMM1K(lVal, mVal, kVal);
+        } else if (selectedMethod === 'mms') {
+          res = solveMMs(lVal, mVal, sVal);
+        }
       }
-      setResult({ ...res, timeUnit });
+      setResult({ ...res, timeUnit, selectedMethod });
       setCurrentStep(0);
     } catch (err) {
       setError(err.message);
@@ -83,7 +112,7 @@ export default function QueueModule() {
 
   const handleExport = async () => {
     if (result) {
-      const inputs = { lambda: Number(lambda), mu: Number(mu), k: Number(k), s: Number(s), statement };
+      const inputs = { lambda: Number(lambda), mu: Number(mu), k: Number(k), s: Number(s), statement, bdN, bdLambdas, bdMus, markovN, markovMatrix, markovInitial, markovSteps };
       await exportQueueToPDF(selectedMethod, inputs, result);
     }
   };
@@ -98,6 +127,8 @@ export default function QueueModule() {
             <option value="mm1">M/M/1 (Un Servidor)</option>
             <option value="mm1k">M/M/1/K (Cola Finita)</option>
             <option value="mms">M/M/s (Múltiples Servidores)</option>
+            <option value="birth-death">Nacimiento y Muerte</option>
+            <option value="markov">Cadenas de Markov</option>
           </select>
         </div>
         <div className="form-group" style={{ marginBottom: '15px' }}>
@@ -108,25 +139,87 @@ export default function QueueModule() {
             <option value="Días">Días</option>
           </select>
         </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Tasa de Llegada (λ):</label>
-          <input type="number" step="0.1" value={lambda} onChange={e => setLambda(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Tasa de Servicio (μ):</label>
-          <input type="number" step="0.1" value={mu} onChange={e => setMu(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
-        </div>
-        {selectedMethod === 'mm1k' && (
-          <div style={{ marginBottom: '10px' }}>
-            <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Capacidad (K):</label>
-            <input type="number" value={k} onChange={e => setK(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
-          </div>
+        {(selectedMethod === 'mm1' || selectedMethod === 'mm1k' || selectedMethod === 'mms') && (
+          <>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Tasa de Llegada (λ):</label>
+              <input type="number" step="0.1" value={lambda} onChange={e => setLambda(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Tasa de Servicio (μ):</label>
+              <input type="number" step="0.1" value={mu} onChange={e => setMu(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+            </div>
+            {selectedMethod === 'mm1k' && (
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Capacidad (K):</label>
+                <input type="number" value={k} onChange={e => setK(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+              </div>
+            )}
+            {selectedMethod === 'mms' && (
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Servidores (s):</label>
+                <input type="number" value={s} onChange={e => setS(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+              </div>
+            )}
+          </>
         )}
-        {selectedMethod === 'mms' && (
-          <div style={{ marginBottom: '10px' }}>
-            <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Servidores (s):</label>
-            <input type="number" value={s} onChange={e => setS(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
-          </div>
+
+        {selectedMethod === 'birth-death' && (
+          <>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Capacidad N:</label>
+              <input type="number" min="1" max="20" value={bdN} onChange={e => {
+                const val = Number(e.target.value);
+                setBdN(val);
+                setBdLambdas(Array(val).fill(10));
+                setBdMus(Array(val+1).fill(15));
+              }} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+            </div>
+            <div style={{ maxHeight: '250px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '4px' }}>
+              {Array.from({length: bdN + 1}).map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                  {i < bdN && (
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>λ_{i}:</label>
+                      <input type="number" step="0.1" value={bdLambdas[i]} onChange={e => {
+                        const newL = [...bdLambdas];
+                        newL[i] = Number(e.target.value);
+                        setBdLambdas(newL);
+                      }} style={{ width: '100%', padding: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+                    </div>
+                  )}
+                  {i > 0 && (
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>μ_{i}:</label>
+                      <input type="number" step="0.1" value={bdMus[i]} onChange={e => {
+                        const newM = [...bdMus];
+                        newM[i] = Number(e.target.value);
+                        setBdMus(newM);
+                      }} style={{ width: '100%', padding: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {selectedMethod === 'markov' && (
+          <>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Estados (N):</label>
+              <input type="number" min="2" max="10" value={markovN} onChange={e => {
+                const val = Number(e.target.value);
+                setMarkovN(val);
+                setMarkovMatrix(Array.from({length: val}, () => Array(val).fill(1/val)));
+                setMarkovInitial(Array(val).fill(1/val));
+              }} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Iteraciones (n):</label>
+              <input type="number" min="1" value={markovSteps} onChange={e => setMarkovSteps(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: '#1e293b', color: '#fff', border: '1px solid #334155' }} />
+            </div>
+          </>
         )}
         {warning && <div style={{ margin: '15px 0', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}>{warning}</div>}
         <button className="btn" style={{ background: '#10b981', color: '#fff', padding: '10px', marginTop: '10px', width: '100%', border: 'none', borderRadius: '4px', cursor: 'pointer' }} onClick={handleSolve} disabled={!!warning}>Calcular</button>
@@ -159,10 +252,57 @@ export default function QueueModule() {
       </aside>
       <main className="main-content" style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0 }}>Resultados</h2>
+          <h2 style={{ margin: 0 }}>Resultados {selectedMethod === 'markov' ? 'y Datos' : ''}</h2>
           {result && <button className="btn" style={{ background: '#8b5cf6', padding: '8px 15px', color: '#fff', border: 'none', borderRadius: '4px' }} onClick={handleExport}>📄 Exportar</button>}
         </div>
         {error && <div style={{ padding: '15px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', borderRadius: '4px' }}>{error}</div>}
+
+        {!result && selectedMethod === 'markov' && (
+          <div style={{ marginBottom: '20px', background: '#1e293b', padding: '20px', borderRadius: '8px' }}>
+            <h3 style={{ margin: '0 0 15px 0', color: '#94a3b8' }}>Matriz de Transición P y Estado Inicial π(0)</h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '8px', borderBottom: '1px solid #334155', color: '#94a3b8' }}></th>
+                    {Array.from({length: markovN}).map((_, c) => (
+                      <th key={c} style={{ padding: '8px', borderBottom: '1px solid #334155', color: '#94a3b8' }}>E{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({length: markovN}).map((_, r) => (
+                    <tr key={r}>
+                      <td style={{ padding: '8px', borderBottom: '1px solid #334155', fontWeight: 'bold', color: '#94a3b8' }}>E{r}</td>
+                      {Array.from({length: markovN}).map((_, c) => (
+                        <td key={c} style={{ padding: '8px', borderBottom: '1px solid #334155' }}>
+                          <input type="number" step="0.01" value={markovMatrix[r] ? markovMatrix[r][c] : 0} onChange={e => {
+                            const newM = [...markovMatrix];
+                            if(!newM[r]) newM[r] = Array(markovN).fill(0);
+                            newM[r][c] = Number(e.target.value);
+                            setMarkovMatrix(newM);
+                          }} style={{ width: '60px', padding: '5px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '4px' }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  <tr>
+                    <td style={{ padding: '8px', paddingTop: '15px', fontWeight: 'bold', color: '#3b82f6' }}>π(0)</td>
+                    {Array.from({length: markovN}).map((_, c) => (
+                      <td key={c} style={{ padding: '8px', paddingTop: '15px' }}>
+                        <input type="number" step="0.01" value={markovInitial[c] || 0} onChange={e => {
+                          const newI = [...markovInitial];
+                          newI[c] = Number(e.target.value);
+                          setMarkovInitial(newI);
+                        }} style={{ width: '60px', padding: '5px', background: 'rgba(59,130,246,0.1)', color: '#fff', border: '1px solid #3b82f6', borderRadius: '4px' }} />
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {statement && (
           <div style={{ marginBottom: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
@@ -183,34 +323,81 @@ export default function QueueModule() {
 
         {result && (
           <div id="pdf-export-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
-              <ResultCard title="Utilización (ρ)" value={`${(result.rho * 100).toFixed(2)} %`} desc="Porcentaje de ocupado" color="#3b82f6" />
-              <ResultCard title="Prob. Vacío (P₀)" value={`${(result.p0 * 100).toFixed(2)} %`} desc="Probabilidad cero clientes" color="#10b981" />
-              
-              {result.pk !== undefined && (
-                <ResultCard title="Prob. Lleno (Pₖ)" value={`${(result.pk * 100).toFixed(2)} %`} desc="Probabilidad rechazo" color="#ef4444" />
-              )}
-              
-              <ResultCard title="L" value={result.l.toFixed(3)} desc="Clientes en sistema" color="#f59e0b" />
-              <ResultCard title="Lq" value={result.lq.toFixed(3)} desc="Clientes en cola" color="#f59e0b" />
-              <ResultCard title="W" value={`${result.w.toFixed(3)} ${result.timeUnit}`} desc="Tiempo en sistema" color="#8b5cf6" />
-              <ResultCard title="Wq" value={`${result.wq.toFixed(3)} ${result.timeUnit}`} desc="Tiempo en cola" color="#8b5cf6" />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '15px' }}>
-              <div style={{ background: '#1e293b', borderRadius: '8px', padding: '15px' }}>
-                <h4 style={{ margin: '0 0 10px 0', color: '#94a3b8' }}>Utilización</h4>
-                <div style={{ height: '120px', width: '100%', position: 'relative' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart><Pie data={[{value: result.rho}, {value: 1-result.rho}]} startAngle={180} endAngle={0} innerRadius={50} outerRadius={70} dataKey="value"><Cell fill={result.rho > 0.8 ? '#ef4444' : '#10b981'} /><Cell fill="#334155" /></Pie></PieChart>
-                  </ResponsiveContainer>
-                  <div style={{ position: 'absolute', bottom: '10px', left: '0', right: '0', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', color: result.rho > 0.8 ? '#ef4444' : '#10b981' }}>
-                    {(result.rho * 100).toFixed(2)}%
-                  </div>
+            {result.selectedMethod !== 'markov' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+                {result.rho !== undefined && (
+                  <ResultCard title="Utilización (ρ)" value={`${(result.rho * 100).toFixed(2)} %`} desc="Porcentaje de ocupado" color="#3b82f6" />
+                )}
+                {result.p0 !== undefined && (
+                  <ResultCard title="Prob. Vacío (P₀)" value={`${(result.p0 * 100).toFixed(2)} %`} desc="Probabilidad cero clientes" color="#10b981" />
+                )}
+                {result.pk !== undefined && (
+                  <ResultCard title="Prob. Lleno (Pₖ)" value={`${(result.pk * 100).toFixed(2)} %`} desc="Probabilidad rechazo" color="#ef4444" />
+                )}
+                {result.l !== undefined && (
+                  <ResultCard title="L" value={result.l.toFixed(3)} desc="Clientes en sistema" color="#f59e0b" />
+                )}
+                {result.lq !== undefined && (
+                  <ResultCard title="Lq" value={result.lq.toFixed(3)} desc="Clientes en cola" color="#f59e0b" />
+                )}
+                {result.w !== undefined && (
+                  <ResultCard title="W" value={`${result.w.toFixed(3)} ${result.timeUnit}`} desc="Tiempo en sistema" color="#8b5cf6" />
+                )}
+                {result.wq !== undefined && (
+                  <ResultCard title="Wq" value={`${result.wq.toFixed(3)} ${result.timeUnit}`} desc="Tiempo en cola" color="#8b5cf6" />
+                )}
+                {result.lambdaEfec !== undefined && (
+                  <ResultCard title="λ efec" value={result.lambdaEfec.toFixed(3)} desc="Tasa de entrada real" color="#14b8a6" />
+                )}
+              </div>
+            )}
+            {result.selectedMethod === 'markov' && (
+              <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, background: '#1e293b', padding: '15px', borderRadius: '8px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: '#94a3b8' }}>Estado en Paso n ({markovSteps})</h4>
+                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                    <tbody>
+                      {result.stateAtN.map((val, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: '5px', borderBottom: '1px solid #334155' }}>E{idx}</td>
+                          <td style={{ padding: '5px', borderBottom: '1px solid #334155', color: '#3b82f6' }}>{val.toFixed(4)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ flex: 1, background: '#1e293b', padding: '15px', borderRadius: '8px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: '#94a3b8' }}>Estado Estable (π)</h4>
+                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                    <tbody>
+                      {result.steadyState.map((val, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: '5px', borderBottom: '1px solid #334155' }}>π_{idx}</td>
+                          <td style={{ padding: '5px', borderBottom: '1px solid #334155', color: '#10b981' }}>{val.toFixed(4)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: result.rho !== undefined ? '1fr 2fr' : '1fr', gap: '15px' }}>
+              {result.rho !== undefined && (
+                <div style={{ background: '#1e293b', borderRadius: '8px', padding: '15px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: '#94a3b8' }}>Utilización</h4>
+                  <div style={{ height: '120px', width: '100%', position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart><Pie data={[{value: result.rho}, {value: 1-result.rho}]} startAngle={180} endAngle={0} innerRadius={50} outerRadius={70} dataKey="value"><Cell fill={result.rho > 0.8 ? '#ef4444' : '#10b981'} /><Cell fill="#334155" /></Pie></PieChart>
+                    </ResponsiveContainer>
+                    <div style={{ position: 'absolute', bottom: '10px', left: '0', right: '0', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', color: result.rho > 0.8 ? '#ef4444' : '#10b981' }}>
+                      {(result.rho * 100).toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
+              )}
               {result.pnData && (
                 <div style={{ background: '#1e293b', borderRadius: '8px', padding: '15px' }}>
-                  <h4 style={{ margin: '0 0 10px 0', color: '#94a3b8' }}>Probabilidad (Pn) vs Clientes (n)</h4>
+                  <h4 style={{ margin: '0 0 10px 0', color: '#94a3b8' }}>Probabilidad por Estado</h4>
                   <div style={{ height: '140px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={result.pnData}><XAxis dataKey="n" stroke="#94a3b8" /><Tooltip /><Bar dataKey="Probabilidad" fill="#3b82f6" /></BarChart>
