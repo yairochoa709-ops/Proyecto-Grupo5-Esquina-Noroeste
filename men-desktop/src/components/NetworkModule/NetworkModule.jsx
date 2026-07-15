@@ -366,46 +366,59 @@ export default function NetworkModule({ initialMethod = 'dijkstra', viewMode = '
   return (
     <div className="app-container" style={{ display: 'flex', height: '100%' }}>
       <aside className="sidebar glass-panel">
-        <div className="header-actions" style={{ flexDirection: 'column', gap: '15px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <h1 style={{ margin: 0 }}>{viewMode === 'critical' ? 'Ruta Crítica' : 'Grafos'}</h1>
-            <button className="btn" onClick={handleGenerateNew}>↻ Generar</button>
+        <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#f8fafc', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>{viewMode === 'critical' ? 'Ruta Crítica' : 'Grafos'}</h3>
+        
+        {/* SECCIÓN 1: Configuración del Modelo */}
+        <div style={{ marginBottom: '20px', background: 'rgba(59, 130, 246, 0.1)', padding: '15px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+          <label style={{ fontSize: '0.9rem', color: '#3b82f6', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Configuración del Modelo</label>
+          <select 
+            value={selectedMethod} 
+            onChange={e => setSelectedMethod(e.target.value)}
+            style={{ width: '100%', padding: '12px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '2px solid #3b82f6', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
+          >
+            {availableMethods.includes('dijkstra') && <option value="dijkstra">Ruta Más Corta (Dijkstra)</option>}
+            {availableMethods.includes('kruskal') && <option value="kruskal">Árbol de Expansión Mínima (Kruskal)</option>}
+            {availableMethods.includes('ford-fulkerson') && <option value="ford-fulkerson">Flujo Máximo (Ford-Fulkerson)</option>}
+            {availableMethods.includes('cpm') && <option value="cpm">Ruta Crítica (CPM)</option>}
+            {availableMethods.includes('pert') && <option value="pert">Ruta Crítica (PERT)</option>}
+          </select>
+        </div>
+
+        <hr style={{ border: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)', margin: '20px 0' }} />
+
+        {/* SECCIÓN 2: Ejemplos */}
+        <div style={{ width: '100%', marginTop: '15px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <label style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>Ejemplos precargados:</label>
+            <button 
+              onClick={handleGenerateNew}
+              style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', border: '1px solid #3b82f6', borderRadius: '4px', padding: '4px 8px', fontSize: '0.75rem', cursor: 'pointer' }}>
+              ↻ Generar Nuevos
+            </button>
           </div>
           
-          <div style={{ width: '100%' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Método a utilizar:</label>
-            <select 
-              value={selectedMethod} 
-              onChange={e => setSelectedMethod(e.target.value)}
-              style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
-            >
-              {availableMethods.includes('dijkstra') && <option value="dijkstra">Ruta Más Corta (Dijkstra)</option>}
-              {availableMethods.includes('kruskal') && <option value="kruskal">Árbol de Expansión Mínima (Kruskal)</option>}
-              {availableMethods.includes('ford-fulkerson') && <option value="ford-fulkerson">Flujo Máximo (Ford-Fulkerson)</option>}
-              {availableMethods.includes('cpm') && <option value="cpm">Ruta Crítica (CPM)</option>}
-              {availableMethods.includes('pert') && <option value="pert">Ruta Crítica (PERT)</option>}
-            </select>
+          <div className="exercise-list">
+            {exercises.map((ex) => {
+              const isSolved = !!solutionsCache[`${ex.id}-${selectedMethod}`];
+              return (
+              <div 
+                key={ex.id} 
+                className={`exercise-card ${selectedExercise?.id === ex.id ? 'active' : ''}`}
+                onClick={() => handleSelect(ex)}
+                style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                <div className="title" style={{ fontSize: '0.85rem' }}>
+                  <span>{ex.name}</span>
+                  {isSolved && <span style={{fontSize: '0.65rem', marginLeft: '5px', background: 'var(--success)', padding: '2px 4px', borderRadius: '3px', color: 'white'}}>(Resuelto)</span>}
+                  <span className="badge balanced" style={{ fontSize: '0.65rem', marginLeft: '5px', background: '#059669', padding: '2px 4px', borderRadius: '3px' }}>EJEMPLO</span>
+                </div>
+                <div className="details" style={{ fontSize: '0.75rem', marginTop: '5px' }}>
+                  Nodos: {ex.nodes.length} | Aristas: {ex.edges.length}
+                </div>
+              </div>
+              );
+            })}
           </div>
-        </div>
-        
-        <div className="exercise-list" style={{ marginTop: '10px' }}>
-          {exercises.map((ex) => {
-            const isSolved = !!solutionsCache[`${ex.id}-${selectedMethod}`];
-            return (
-            <div 
-              key={ex.id} 
-              className={`exercise-card ${selectedExercise?.id === ex.id ? 'active' : ''}`}
-              onClick={() => handleSelect(ex)}
-            >
-              <div className="title">
-                <span>{ex.name} {isSolved && <span style={{fontSize: '0.75rem', color: 'var(--success)'}}>(Resuelto)</span>}</span>
-              </div>
-              <div className="details">
-                Nodos: {ex.nodes.length} | Aristas: {ex.edges.length}
-              </div>
-            </div>
-            );
-          })}
         </div>
       </aside>
 

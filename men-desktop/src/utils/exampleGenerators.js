@@ -137,7 +137,7 @@ export function generateQueueExamples(method, count = 5) {
       examples.push({
         id: i,
         title: `Nacimiento y Muerte ${i}`,
-        statement: `Un sistema con capacidad máxima de ${N} estados donde las tasas de llegada (λ) y servicio (μ) varían según el estado del sistema. Determine la probabilidad de cada estado y las medidas de desempeño generales.`,
+        statement: `${place} tiene una capacidad máxima para ${N} ${entity}. Las tasas de llegada (λ) y de servicio (μ) varían dependiendo de cuántos ${entity} hay en el sistema en ese momento. Determine la probabilidad de cada estado y las medidas de desempeño generales.`,
         method: 'birth-death',
         bdN: N, bdLambdas: bLambdas, bdMus: bMus
       });
@@ -154,12 +154,13 @@ export function generateQueueExamples(method, count = 5) {
       }
       let initial = Array(N).fill(0);
       initial[0] = 1;
+      let steps = randomInt(3, 10);
       examples.push({
         id: i,
         title: `Cadena de Markov ${i}`,
-        statement: `Se modela un proceso estocástico con ${N} estados posibles. Dada la matriz de transición P y asumiendo que inicia en el estado 0, proyecte el estado futuro en n iteraciones y determine las probabilidades de estado estable.`,
+        statement: `El estado de operaciones de ${place} cambia entre ${N} posibles niveles (estados) cada hora. Dada la matriz de transición de probabilidades (P) y asumiendo que inicia en el estado 1 (M1), proyecte el estado del sistema en ${steps} pasos de tiempo y determine las probabilidades de estado estable a largo plazo.`,
         method: 'markov',
-        markovN: N, markovMatrix: matrix, markovInitial: initial, markovSteps: randomInt(3, 10)
+        markovN: N, markovMatrix: matrix, markovInitial: initial, markovSteps: steps
       });
     } else {
        // fallback para otros

@@ -186,5 +186,12 @@ th { background: rgba(255, 255, 255, 0.05); font-weight: 600; color: var(--text-
   transition: background 0.3s ease;
   font-family: inherit;
 }
-.btn:hover { background: var(--primary-hover); }
+.btn:hover:not(:disabled) { background: var(--primary-hover); }
+.btn:disabled {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  opacity: 0.6;
+}
 .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0; }

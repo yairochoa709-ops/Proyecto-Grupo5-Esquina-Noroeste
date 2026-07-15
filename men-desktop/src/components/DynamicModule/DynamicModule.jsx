@@ -214,9 +214,9 @@ const DynamicModule = () => {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       {/* Sidebar */}
-      <div className="glass-panel" style={{ width: '300px', flexShrink: 0, padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <aside className="sidebar glass-panel" style={{ width: '300px', flexShrink: 0, padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div>
-          <h3 style={{ marginTop: 0, marginBottom: '15px', color: 'var(--primary)' }}>Lote de Ejercicios</h3>
+          <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#f8fafc', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Programación Dinámica</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {exercises.map((ex, index) => (
               <div
@@ -236,7 +236,7 @@ const DynamicModule = () => {
         <button className="btn" style={{ background: 'var(--primary)', color: 'white', marginTop: 'auto' }} onClick={handleGenerateNew}>
           🔄 Generar Nuevos
         </button>
-      </div>
+      </aside>
 
       {/* Main Content */}
       <div className="main-content">
@@ -249,15 +249,25 @@ const DynamicModule = () => {
                   ▶️ Resolver Paso a Paso
                 </button>
               )}
-              {isSolving && currentStep > 0 && (
-                <button className="btn" style={{ background: 'var(--background-alt)', color: 'white' }} onClick={() => updateState({ currentStep: Math.max(0, currentStep - 1) })}>
-                  ⬅️ Paso Anterior
-                </button>
-              )}
-              {isSolving && currentStep < maxSteps && (
-                <button className="btn" style={{ background: 'var(--primary)', color: 'white' }} onClick={() => updateState({ currentStep: Math.min(maxSteps, currentStep + 1) })}>
-                  Paso Siguiente ➡️
-                </button>
+              {isSolving && (
+                <>
+                  <button 
+                    className="btn" 
+                    style={{ background: 'var(--background-alt)', color: 'white' }} 
+                    onClick={() => updateState({ currentStep: Math.max(0, currentStep - 1) })}
+                    disabled={currentStep === 0}
+                  >
+                    ⬅️ Paso Anterior
+                  </button>
+                  <button 
+                    className="btn" 
+                    style={{ background: 'var(--primary)', color: 'white' }} 
+                    onClick={() => updateState({ currentStep: Math.min(maxSteps, currentStep + 1) })}
+                    disabled={currentStep === maxSteps}
+                  >
+                    Paso Siguiente ➡️
+                  </button>
+                </>
               )}
               {isSolving && currentStep === maxSteps && (
                 <button className="btn" style={{ background: '#dc3545', color: 'white' }} onClick={exportToPDF}>

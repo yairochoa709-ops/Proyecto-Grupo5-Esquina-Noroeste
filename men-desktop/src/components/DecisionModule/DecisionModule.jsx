@@ -111,37 +111,23 @@ export default function DecisionModule() {
 
   return (
     <div className="app-container" style={{ display: 'flex', height: '100%' }}>
-      <aside className="sidebar glass-panel" style={{ minWidth: '250px' }}>
-        <div className="header-actions" style={{ flexDirection: 'column', gap: '15px' }}>
-          <h2 style={{ margin: 0, color: 'var(--primary)' }}>Teoría de Decisiones</h2>
-          
-          <div style={{ width: '100%' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Criterio:</label>
-            <select 
-              value={selectedMethod} 
-              onChange={e => { setSelectedMethod(e.target.value); setResult(null); setError(''); }}
-              style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
-            >
-              <option value="incertidumbre">Incertidumbre (Maximax, Maximin, Laplace)</option>
-              <option value="riesgo">Riesgo (Valor Monetario Esperado - VME)</option>
-            </select>
-          </div>
+      <aside className="sidebar glass-panel">
+        <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#f8fafc', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Teoría de Decisiones</h3>
+        
+        {/* SECCIÓN 1: Configuración del Modelo */}
+        <div style={{ marginBottom: '20px', background: 'rgba(59, 130, 246, 0.1)', padding: '15px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+          <label style={{ fontSize: '0.9rem', color: '#3b82f6', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Configuración del Modelo</label>
+          <select 
+            value={selectedMethod} 
+            onChange={e => { setSelectedMethod(e.target.value); setResult(null); setError(''); }}
+            style={{ width: '100%', padding: '12px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '2px solid #3b82f6', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
+          >
+            <option value="incertidumbre">Incertidumbre (Maximax, Maximin, Laplace)</option>
+            <option value="riesgo">Riesgo (Valor Monetario Esperado - VME)</option>
+          </select>
+        </div>
 
-          <div style={{ width: '100%', marginTop: '10px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tipo de Matriz:</label>
-            <select 
-              value={isCost ? 'costos' : 'ganancias'} 
-              onChange={e => setIsCost(e.target.value === 'costos')}
-              style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
-            >
-              <option value="ganancias">Ganancias (Maximizar)</option>
-              <option value="costos">Costos (Minimizar)</option>
-            </select>
-          </div>
-
-          <button className="btn" style={{ background: 'var(--success)', marginTop: '20px', width: '100%' }} onClick={handleSolve}>
-            Calcular Decisiones
-          </button>
+        <hr style={{ border: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)', margin: '20px 0' }} />
 
           <div style={{ width: '100%', marginTop: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -158,21 +144,20 @@ export default function DecisionModule() {
                   key={ex.id}
                   className="exercise-card"
                   onClick={() => loadExample(ex)}
-                  style={{ cursor: 'pointer', padding: '10px' }}
+                  style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
                 >
                   <div className="title" style={{ fontSize: '0.85rem' }}>
                     <span>{ex.id}. {ex.title}</span>
-                    <span className="badge balanced" style={{ fontSize: '0.65rem' }}>EJEMPLO</span>
+                    <span className="badge balanced" style={{ fontSize: '0.65rem', marginLeft: '5px', background: '#059669', padding: '2px 4px', borderRadius: '3px' }}>EJEMPLO</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
       </aside>
 
-      <main className="main-content glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '15px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+      <main className="main-content glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '20px' }}>
+        <div className="header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Matriz de Pagos</h2>
             <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', overflow: 'hidden' }}>
@@ -190,30 +175,21 @@ export default function DecisionModule() {
                 Resultados
               </button>
             </div>
-          </div>
-          {result && (
-            <button className="btn" style={{ background: '#8b5cf6', padding: '5px 10px', fontSize: '0.85rem' }} onClick={handleExport}>
-              📄 Exportar a PDF
-            </button>
-          )}
-        </div>
-
-        {statement && (
-          <div style={{ marginBottom: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
-            <div 
-              style={{ padding: '10px 15px', background: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-              onClick={() => setShowStatement(!showStatement)}
-            >
-              <h3 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--primary)' }}>Contexto del Problema</h3>
-              <span style={{ fontSize: '0.8rem' }}>{showStatement ? '▼ Ocultar' : '▶ Mostrar'}</span>
-            </div>
-            {showStatement && (
-              <div style={{ padding: '15px', fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5' }}>
-                {statement}
+            {!result && (
+              <div style={{ fontSize: '0.9rem', color: '#94a3b8', marginTop: '5px' }}>
+                Configure los parámetros a continuación y presione Calcular.
               </div>
             )}
           </div>
-        )}
+          {result && (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn" style={{ background: '#3b82f6', padding: '8px 15px', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setActiveTab('input')}>✏️ Modificar Datos</button>
+              <button className="btn" style={{ background: '#8b5cf6', padding: '8px 15px', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }} onClick={handleExport}>📄 Exportar a PDF</button>
+            </div>
+          )}
+        </div>
+
+
 
         {error && (
           <div style={{ padding: '15px', background: 'rgba(239, 68, 68, 0.2)', borderLeft: '4px solid #ef4444', borderRadius: '4px', marginBottom: '15px' }}>
@@ -223,10 +199,51 @@ export default function DecisionModule() {
         )}
 
         <div style={{ overflowY: 'auto', flex: 1, paddingRight: '5px' }}>
+          {statement && (
+            <div style={{ marginBottom: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
+              <div 
+                style={{ padding: '10px 15px', background: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => setShowStatement(!showStatement)}
+              >
+                <h3 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--primary)' }}>Contexto del Problema</h3>
+                <span style={{ fontSize: '0.8rem' }}>{showStatement ? '▼ Ocultar' : '▶ Mostrar'}</span>
+              </div>
+              {showStatement && (
+                <div style={{ padding: '15px', fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                  {statement}
+                </div>
+              )}
+            </div>
+          )}
           {activeTab === 'input' && (
-            <div style={{ overflowX: 'auto', background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '8px' }}>
-              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                <thead>
+            <div className="glass-panel" style={{ padding: '25px', borderRadius: '12px', background: 'rgba(30, 41, 59, 0.7)' }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#f8fafc', fontSize: '1.2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Parámetros de Entrada</h3>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Tipo de Matriz:</label>
+                  <select 
+                    value={isCost ? 'costos' : 'ganancias'} 
+                    onChange={e => setIsCost(e.target.value === 'costos')}
+                    style={{ width: '100%', minWidth: '250px', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem', display: 'block' }}
+                  >
+                    <option value="ganancias">Ganancias (Maximizar)</option>
+                    <option value="costos">Costos (Minimizar)</option>
+                  </select>
+                </div>
+                
+                <button 
+                  className="btn" 
+                  style={{ background: '#10b981', color: '#fff', padding: '10px 25px', fontSize: '1.1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)' }} 
+                  onClick={handleSolve} 
+                >
+                  ▶ Calcular Resultados
+                </button>
+              </div>
+
+              <div style={{ overflowX: 'auto', background: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '8px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                  <thead>
                   <tr>
                     <th style={{ padding: '10px' }}></th>
                     {matrix[0].map((_, c) => (
@@ -282,6 +299,9 @@ export default function DecisionModule() {
                   </tr>
                 </tbody>
               </table>
+              </div>
+
+
             </div>
           )}
 

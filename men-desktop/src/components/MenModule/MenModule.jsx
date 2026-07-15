@@ -246,11 +246,14 @@ function MenModule() {
 
   const updateActiveFrame = (updater) => {
     if (!selectedExercise) return;
-    setCurrentFrames(prev => {
-      const current = prev[selectedExercise.id] || 0;
-      const next = typeof updater === 'function' ? updater(current) : updater;
-      return { ...prev, [selectedExercise.id]: next };
-    });
+    const current = currentFrames[selectedExercise.id] || 0;
+    const next = typeof updater === 'function' ? updater(current) : updater;
+    
+    if (currentSolution && next !== currentSolution.frames.length - 1) {
+      setShowRoute(false);
+    }
+    
+    setCurrentFrames(prev => ({ ...prev, [selectedExercise.id]: next }));
   };
 
   const handleExportPDF = () => {
@@ -413,9 +416,11 @@ function MenModule() {
               </div>
               {currentSolution ? (
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button className="btn" style={{ background: showRoute ? '#f97316' : '#3b82f6' }} onClick={() => setShowRoute(!showRoute)}>
-                    {showRoute ? 'Ocultar Ruta' : 'Trazar Ruta'}
-                  </button>
+                  {activeFrame === currentSolution.frames.length - 1 && (
+                    <button className="btn" style={{ background: showRoute ? '#f97316' : '#3b82f6' }} onClick={() => setShowRoute(!showRoute)}>
+                      {showRoute ? 'Ocultar Ruta' : 'Trazar Ruta'}
+                    </button>
+                  )}
                   <button className="btn" style={{ background: '#8b5cf6' }} onClick={handleExportPDF}>
                     📄 Exportar a PDF
                   </button>

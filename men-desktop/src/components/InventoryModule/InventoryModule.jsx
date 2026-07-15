@@ -117,93 +117,30 @@ export default function InventoryModule() {
 
   return (
     <div className="app-container" style={{ display: 'flex', height: '100%' }}>
-      <aside className="sidebar glass-panel" style={{ minWidth: '250px' }}>
-        <div className="header-actions" style={{ flexDirection: 'column', gap: '15px' }}>
-          <h2 style={{ margin: 0, color: 'var(--primary)' }}>Inventarios</h2>
-          
-          <div style={{ width: '100%' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Modelo:</label>
-            <select 
-              value={selectedMethod} 
-              onChange={e => { 
-                setSelectedMethod(e.target.value); 
-                setResult(null); 
-                setError(''); 
-                setActiveTab('input');
-              }}
-              style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
-            >
-              <option value="eoq">EOQ Clásico</option>
-              <option value="eoq-backorders">EOQ con Faltantes planeados</option>
-              <option value="epq">EPQ (Lote de Producción)</option>
-              <option value="abc">Clasificación ABC</option>
-            </select>
-          </div>
+      <aside className="sidebar glass-panel">
+        <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#f8fafc', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Inventarios</h3>
+        
+        {/* SECCIÓN 1: Configuración del Modelo */}
+        <div style={{ marginBottom: '20px', background: 'rgba(59, 130, 246, 0.1)', padding: '15px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+          <label style={{ fontSize: '0.9rem', color: '#3b82f6', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Configuración del Modelo</label>
+          <select 
+            value={selectedMethod} 
+            onChange={e => { 
+              setSelectedMethod(e.target.value); 
+              setResult(null); 
+              setError(''); 
+              setActiveTab('input');
+            }}
+            style={{ width: '100%', padding: '12px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '2px solid #3b82f6', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
+          >
+            <option value="eoq">EOQ Clásico</option>
+            <option value="eoq-backorders">EOQ con Faltantes planeados</option>
+            <option value="epq">EPQ (Lote de Producción)</option>
+            <option value="abc">Clasificación ABC</option>
+          </select>
+        </div>
 
-          {selectedMethod !== 'abc' && (
-            <>
-              <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Demanda (D):</label>
-                <input type="number" value={D} onChange={e => setD(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-              </div>
-
-              <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo de Orden (K):</label>
-                <input type="number" value={Co} onChange={e => setCo(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-              </div>
-
-              <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo de Mantener (h):</label>
-                <input type="number" step="0.1" value={Ch} onChange={e => setCh(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-              </div>
-            </>
-          )}
-
-          {selectedMethod === 'eoq-backorders' && (
-            <div style={{ width: '100%', marginTop: '10px' }}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo Faltante (Cf):</label>
-              <input type="number" step="0.1" value={Cf} onChange={e => setCf(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-            </div>
-          )}
-
-          {/* Campos exclusivos de EOQ: días hábiles, tiempo de entrega, costo unitario */}
-          {selectedMethod === 'eoq' && (
-            <>
-              <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Costo Unitario (C):</label>
-                <input type="number" min="0" value={C} onChange={e => setC(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>Si lo dejas en 0, no sumará costo de compra al total.</span>
-              </div>
-              <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Días hábiles por año:</label>
-                <input type="number" value={diasHabiles} onChange={e => setDiasHabiles(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-              </div>
-              <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tiempo de entrega — L (días):</label>
-                <input type="number" min="0" value={L} onChange={e => setL(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>Deja en 0 si no aplica punto de reorden</span>
-              </div>
-            </>
-          )}
-
-          {selectedMethod === 'epq' && (
-            <>
-              <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tasa de Producción (p):</label>
-                <input type="number" value={p} onChange={e => setP(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-              </div>
-              <div style={{ width: '100%', marginTop: '10px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tasa de Demanda (d):</label>
-                <input type="number" value={d} onChange={e => setdRate(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />
-              </div>
-            </>
-          )}
-
-            <button className="btn" style={{ background: 'var(--success)', marginTop: '20px', width: '100%' }} onClick={handleSolve}>
-              Calcular Inventario
-            </button>
-
-            <div style={{ width: '100%', marginTop: '15px' }}>
+        <hr style={{ border: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)', margin: '20px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <label style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>Ejemplos precargados:</label>
                 <button 
@@ -219,65 +156,47 @@ export default function InventoryModule() {
                     key={ex.id}
                     className="exercise-card"
                     onClick={() => loadExample(ex)}
-                    style={{ cursor: 'pointer', padding: '10px' }}
+                    style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
                   >
                     <div className="title" style={{ fontSize: '0.85rem' }}>
                       <span>{ex.id}. {ex.title}</span>
-                      <span className="badge balanced" style={{ fontSize: '0.65rem' }}>EJEMPLO</span>
+                      <span className="badge balanced" style={{ fontSize: '0.65rem', marginLeft: '5px', background: '#059669', padding: '2px 4px', borderRadius: '3px' }}>EJEMPLO</span>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-
       </aside>
 
-      <main className="main-content glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '15px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+      <main className="main-content glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '20px' }}>
+        <div className="header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>{selectedMethod === 'abc' ? 'Clasificación ABC' : 'Resultados de Inventario'}</h2>
-            {selectedMethod === 'abc' && (
-              <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', overflow: 'hidden' }}>
-                <button 
-                  onClick={() => setActiveTab('input')}
-                  style={{ background: activeTab === 'input' ? '#3b82f6' : 'transparent', color: '#fff', border: 'none', padding: '6px 12px', cursor: 'pointer', fontSize: '0.85rem', transition: 'background 0.2s' }}
-                >
-                  Datos de Entrada
-                </button>
-                <button 
-                  onClick={() => result && setActiveTab('results')}
-                  style={{ background: activeTab === 'results' ? '#3b82f6' : 'transparent', color: result ? '#fff' : '#64748b', border: 'none', padding: '6px 12px', cursor: result ? 'pointer' : 'not-allowed', fontSize: '0.85rem', transition: 'background 0.2s' }}
-                  disabled={!result}
-                >
-                  Resultados
-                </button>
+            {!result && (
+              <div style={{ fontSize: '0.9rem', color: '#94a3b8', marginTop: '5px' }}>
+                Configure los parámetros a continuación y presione Calcular.
               </div>
             )}
           </div>
-          {result && (
-            <button className="btn" style={{ background: '#8b5cf6', padding: '5px 10px', fontSize: '0.85rem' }} onClick={handleExport}>
-              📄 Exportar a PDF
-            </button>
+          {result ? (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn" style={{ background: '#3b82f6', padding: '8px 15px', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setResult(null)}>✏️ Modificar Datos</button>
+              <button className="btn" style={{ background: '#8b5cf6', padding: '8px 15px', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }} onClick={handleExport}>📄 Exportar a PDF</button>
+            </div>
+          ) : (
+            <div>
+              <button 
+                className="btn" 
+                style={{ background: '#10b981', color: '#fff', padding: '10px 25px', fontSize: '1.1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)' }} 
+                onClick={handleSolve} 
+              >
+                ▶ Calcular Resultados
+              </button>
+            </div>
           )}
         </div>
+        {error && <div style={{ padding: '15px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', borderRadius: '4px', marginBottom: '15px' }}>{error}</div>}
 
-        {statement && (
-          <div style={{ marginBottom: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
-            <div 
-              style={{ padding: '10px 15px', background: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-              onClick={() => setShowStatement(!showStatement)}
-            >
-              <h3 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--primary)' }}>Contexto del Problema</h3>
-              <span style={{ fontSize: '0.8rem' }}>{showStatement ? '▼ Ocultar' : '▶ Mostrar'}</span>
-            </div>
-            {showStatement && (
-              <div style={{ padding: '15px', fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5' }}>
-                {statement}
-              </div>
-            )}
-          </div>
-        )}
+
 
         {error && (
           <div style={{ padding: '15px', background: 'rgba(239, 68, 68, 0.2)', borderLeft: '4px solid #ef4444', borderRadius: '4px', marginBottom: '20px' }}>
@@ -287,8 +206,84 @@ export default function InventoryModule() {
         )}
 
         <div style={{ overflowY: 'auto', flex: 1, paddingRight: '5px' }}>
-          {selectedMethod === 'abc' && activeTab === 'input' && (
-            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+          {statement && (
+            <div style={{ marginBottom: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
+              <div 
+                style={{ padding: '10px 15px', background: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => setShowStatement(!showStatement)}
+              >
+                <h3 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--primary)' }}>Contexto del Problema</h3>
+                <span style={{ fontSize: '0.8rem' }}>{showStatement ? '▼ Ocultar' : '▶ Mostrar'}</span>
+              </div>
+              {showStatement && (
+                <div style={{ padding: '15px', fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                  {statement}
+                </div>
+              )}
+            </div>
+          )}
+          {!result && selectedMethod !== 'abc' && (
+            <div className="glass-panel" style={{ padding: '25px', borderRadius: '12px', background: 'rgba(30, 41, 59, 0.7)' }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#f8fafc', fontSize: '1.2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Parámetros de Entrada</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Demanda (D):</label>
+                  <input type="number" value={D} onChange={e => setD(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Costo de Orden (K):</label>
+                  <input type="number" value={Co} onChange={e => setCo(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Costo de Mantener (h):</label>
+                  <input type="number" step="0.1" value={Ch} onChange={e => setCh(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                </div>
+                
+                {selectedMethod === 'eoq-backorders' && (
+                  <div>
+                    <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Costo Faltante (Cf):</label>
+                    <input type="number" step="0.1" value={Cf} onChange={e => setCf(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                  </div>
+                )}
+                
+                {selectedMethod === 'eoq' && (
+                  <>
+                    <div>
+                      <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Costo Unitario (C):</label>
+                      <input type="number" min="0" value={C} onChange={e => setC(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>0 si no suma costo de compra.</span>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Días hábiles por año:</label>
+                      <input type="number" value={diasHabiles} onChange={e => setDiasHabiles(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Tiempo de entrega — L (días):</label>
+                      <input type="number" min="0" value={L} onChange={e => setL(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>0 si no aplica reorden.</span>
+                    </div>
+                  </>
+                )}
+
+                {selectedMethod === 'epq' && (
+                  <>
+                    <div>
+                      <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Tasa de Producción (p):</label>
+                      <input type="number" value={p} onChange={e => setP(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 'bold' }}>Tasa de Demanda (d):</label>
+                      <input type="number" value={d} onChange={e => setdRate(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155', fontSize: '1rem' }} />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!result && selectedMethod === 'abc' && (
+            <div style={{ background: 'rgba(30, 41, 59, 0.7)', padding: '25px', borderRadius: '12px', marginBottom: '20px' }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#f8fafc', fontSize: '1.2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>Parámetros de Entrada (ABC)</h3>
               <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead>
                   <tr>

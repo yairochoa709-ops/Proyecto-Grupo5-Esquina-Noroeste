@@ -344,7 +344,38 @@ export async function exportQueueToPDF(method, inputs, result) {
     y += 12;
   }
 
-  // ── CONCLUSIÓN ──────────────────────────────────────────────────────────
+  // ── CONCLUSIÓN / DIAGRAMAS ──────────────────────────────────────────────
+  if (method === 'markov') {
+    const el = document.getElementById('markov-diagram-export');
+    if (el) {
+      try {
+        const { default: html2canvas } = await import('html2canvas');
+        const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#1e293b' });
+        const imgData = canvas.toDataURL('image/png');
+        
+        checkPage(250);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(15, 23, 42);
+        doc.text('Diagrama de Transicion de Estados', margin, y);
+        y += 15;
+        
+        let w = canvas.width;
+        let h = canvas.height;
+        let maxW = contentW;
+        if (w > maxW) { 
+          h *= maxW / w; 
+          w = maxW; 
+        }
+        
+        doc.addImage(imgData, 'PNG', margin + (contentW - w)/2, y, w, h);
+        y += h + 20;
+      } catch (err) {
+        console.error('Error capturando diagrama markov', err);
+      }
+    }
+  }
+
   if (result.conclusion) {
     checkPage(70);
     doc.setFont('helvetica', 'bold');
