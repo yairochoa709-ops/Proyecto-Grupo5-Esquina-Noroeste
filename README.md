@@ -1,86 +1,77 @@
-# Solucionador del Método de la Esquina Noroeste (MEN)
+# Suite de Investigación de Operaciones
 
-## Descripción del Proyecto
-Este proyecto es un software interactivo y educativo diseñado para resolver problemas de transporte de la asignatura de Investigación de Operaciones utilizando el Método de la Esquina Noroeste (MEN). 
+Una potente aplicación de escritorio diseñada para resolver, visualizar y aprender sobre diversos problemas de Investigación de Operaciones. Desarrollada por el **Proyecto Grupo 5**, esta suite ofrece un enfoque pedagógico mostrando la resolución paso a paso de cada modelo matemático y generando reportes detallados en PDF.
 
-El objetivo principal es proveer una herramienta visual avanzada que genere ejercicios aleatorios, valide su estado (oferta vs demanda), resuelva el modelo paso a paso documentando cada acción de forma narrativa y permita exportar un reporte detallado en formato PDF. El sistema final está diseñado para ser distribuido como una aplicación de escritorio nativa para Windows con su propio instalador.
+## 🚀 Características Principales
 
-## Tecnologías Utilizadas
-- **Frontend / Interfaz:** React.js (construido con Vite).
-- **Contenedor de Escritorio:** Electron.js.
-- **Estilos:** Vanilla CSS (Enfoque en diseño UI Premium, moderno y dinámico).
-- **Generación de Reportes:** Librerías de conversión de HTML a PDF (`jspdf` / `html2pdf.js`).
-- **Empaquetado e Instalador:** `electron-builder` (genera ejecutable NSIS para Windows).
+La aplicación cuenta con 6 módulos principales que abarcan distintas ramas de la Investigación de Operaciones:
 
-## Arquitectura por Módulos
-El desarrollo del proyecto está estructurado en 5 módulos fundamentales:
+1. **Transporte (Esquina Noroeste)**: Resolución paso a paso de matrices de transporte (oferta y demanda), auto-balanceo lógico, degeneración y trazado de rutas.
+2. **Análisis de Redes (PERT / CPM)**: Trazado interactivo del diagrama de red, cálculo de tiempos más tempranos (Holguras), tiempos más tardíos, identificación de la ruta crítica y varianza del proyecto.
+3. **Programación Dinámica**: Resolución del clásico Problema de la Diligencia utilizando recursión hacia atrás de Bellman para encontrar la ruta de menor costo.
+4. **Teoría de Colas**:
+   - **Cadenas de Markov**: Cálculo de probabilidades de estado estable y dibujado exacto del diagrama de transición de estados.
+   - **Nacimiento y Muerte**: Cálculo de parámetros operativos de los sistemas de espera ($\rho, L, L_q, W, W_q$).
+5. **Inventarios**: Cálculos para los modelos determinísticos y probabilísticos (EOQ, POQ, Descuentos por cantidad), incluyendo gráficas interactivas del comportamiento del inventario en el tiempo.
+6. **Teoría de Decisiones**: Toma de decisiones bajo incertidumbre y riesgo utilizando matrices de pagos y aplicando los criterios de Laplace, Optimista, Pesimista, Hurwicz, Savage, y Valor Esperado.
 
-### 1. Módulo de Generación Automática
-- Generador de lotes de ejercicios (al menos 5 distintos) con dimensiones variadas (ej. entre 3x3 y 5x5).
-- Lógica para crear tanto escenarios **equilibrados** como **desequilibrados**.
-- Panel interactivo para seleccionar y cargar el ejercicio deseado.
+### 🌟 Funcionalidades Transversales
+- **Generador Automático de Ejercicios**: Crea problemas y contextos aleatorios equilibrados o desequilibrados con un solo clic para estudiar.
+- **Resolución Paso a Paso**: Interfaz interactiva para avanzar o retroceder en el algoritmo, mostrando qué operación matemática se realiza en cada iteración.
+- **Modo Manual**: Ingresa tus propias matrices, grafos o parámetros personalizados.
+- **Exportación a PDF**: Generación de reportes profesionales en formato PDF con la resolución completa, fórmulas matemáticas renderizadas y los diagramas gráficos incrustados.
 
-### 2. Módulo de Validación y Balanceo Automático
-- Análisis matemático en tiempo real al seleccionar un lote (Oferta Total vs Demanda Total).
-- Alertas visuales dinámicas que indican si el problema está Equilibrado o Desequilibrado.
-- Algoritmo de **auto-balanceo lógico** que, de forma transparente, inyecta filas (origen) o columnas (destino) ficticias con costos cero para cuadrar el modelo antes de su resolución.
+---
 
-### 3. Módulo de Solución y Reproducción Paso a Paso
-- **Motor Matemático:** Implementación pura y estricta del algoritmo del Método de la Esquina Noroeste.
-- **Historial de Estados:** Procesamiento en segundo plano que almacena "fotografías" exactas de la matriz en cada iteración.
-- **Reproductor Visual:** Interfaz con controles (Anterior / Siguiente) para visualizar cómo se resuelven las asignaciones. Incluye una narrativa de texto que describe la acción y efectos visuales de tachado/sombreado de celdas agotadas.
+## 🛠 Tecnologías Utilizadas
 
-### 4. Módulo de Exportación y Reportes
-- Consolidación del ejercicio en un formato amigable para impresión o guardado digital.
-- El archivo exportado contendrá la matriz inicial, el listado completo de la narrativa paso a paso, la matriz final resuelta y el costo total de transporte desglosado.
+Esta suite está construida utilizando tecnologías modernas de desarrollo web integradas en una aplicación de escritorio nativa:
 
-### 5. Distribución del Software
-- Configuración de empaquetado para convertir el código en una app nativa (`.exe`).
-- Generación de un **asistente de instalación** tradicional para el usuario final (profesor/estudiante).
+- **[Electron](https://www.electronjs.org/)**: Framework para empaquetar la aplicación de escritorio multiplataforma (Windows/Mac/Linux).
+- **[React 19](https://react.dev/)**: Librería para la construcción de la Interfaz de Usuario.
+- **[Vite](https://vitejs.dev/)**: Herramienta de construcción (*bundler*) ultra-rápida.
+- **Visualización y Gráficos**:
+  - `recharts` para las gráficas cartesianas (Inventarios).
+  - Motores de dibujo SVG propios diseñados desde cero para graficar Cadenas de Markov, Rutas Críticas y Esquina Noroeste.
+- **Generación de Reportes**:
+  - `jspdf` y `jspdf-autotable` para construir la estructura del documento.
+  - `html2canvas` para incrustar gráficos complejos.
+  - `katex` y `react-katex` para la renderización matemática impecable de fórmulas tanto en la interfaz como en el PDF.
 
-### 6. Módulo de Análisis de Redes (Grafos)
-Este módulo amplía el software para incluir la resolución interactiva y paso a paso de tres algoritmos fundamentales de la teoría de redes:
-- **Ruta Más Corta (Dijkstra):** Implementación estricta usando estados de nodos "Temporales" y "Permanentes", guiando al usuario hasta trazar el camino óptimo hacia el destino.
-- **Árbol de Expansión Mínima (Kruskal/Prim):** Lógica matemática implementada a través de la gestión de fronteras y conjuntos (Conjunto C "Conectados" y Conjunto C' "No conectados").
-- **Flujo Máximo (Ford-Fulkerson):** Utiliza una búsqueda voraz (Greedy DFS) que prioriza iterativamente la ruta con la mayor capacidad disponible, restando el cuello de botella y bloqueando visualmente (en negro) las rutas saturadas.
+---
 
-**Características Visuales y de Arquitectura del Módulo de Redes:**
-- **UI Compacta e Inteligente:** El lienzo del grafo es dinámico (`viewBox` escalable) para permitir visualizar tanto la red completa como el reproductor paso a paso de narrativa en una sola vista, eliminando por completo el *scroll* vertical.
-- **Generación Limpia de Grafos:** Algoritmo que estructura los nodos por capas aleatorias evitando el cruce masivo (telaraña) de líneas, lo que facilita enormemente la lectura de las aristas.
-- **Reportes PDF con Gráficos Vectoriales:** Se construyó un motor matemático dentro del generador de PDF (`jsPDF`) que no toma capturas de pantalla, sino que **dibuja vectorialmente** las coordenadas exactas de la red, generando un "Grafo Inicial" y un "Grafo Final" en altísima resolución dentro del reporte PDF.
+## ⚙️ Cómo clonar y ejecutar en desarrollo
 
-## Guía para el Equipo de Desarrollo (Cómo correr el proyecto)
+Para trabajar en este repositorio y ejecutar la aplicación en tu entorno local, asegúrate de tener instalado [Node.js](https://nodejs.org/) (se recomienda v18 o superior).
 
-Si eres miembro del Grupo 5 y acabas de clonar este repositorio, sigue estos pasos para poder correr y editar el programa en tu computadora:
-
-### Requisitos Previos
-- Tener instalado **Node.js** en tu computadora.
-- Tener instalado **Git**.
-
-### Pasos para ejecutar en modo Desarrollo
-1. Abre tu terminal y clona el repositorio:
+1. **Clonar el repositorio:**
    ```bash
    git clone https://github.com/yairochoa709-ops/Proyecto-Grupo5-Esquina-Noroeste.git
-   ```
-2. Entra a la carpeta principal de la aplicación:
-   ```bash
    cd Proyecto-Grupo5-Esquina-Noroeste/men-desktop
    ```
-3. Instala todas las dependencias:
+
+2. **Instalar dependencias:**
    ```bash
    npm install
    ```
-4. Inicia el entorno de desarrollo (esto abrirá la aplicación de escritorio automáticamente):
+
+3. **Iniciar el servidor de desarrollo:**
+   Este comando levantará Vite e iniciará la ventana de Electron de forma paralela.
    ```bash
    npm run dev
    ```
 
-### Pasos para compilar un nuevo instalador (.exe)
-Si hacen mejoras en el código y quieren generar un nuevo instalador, solo deben ejecutar:
+## 📦 Empaquetado para Producción
+
+Para compilar y generar el instalador final (`.exe` para Windows):
+
 ```bash
 npm run build
 ```
-El instalador final aparecerá en la carpeta `men-desktop/dist-electron/`.
+
+Una vez finalizado el proceso, el instalador autoejecutable se encontrará dentro de la carpeta `men-desktop/dist-electron/` (el nombre y ruta exacta puede depender del sistema operativo en el que se construya).
 
 ---
-*Proyecto desarrollado para la asignatura de Investigación de Operaciones - Grupo 5*
+
+## 🤝 Contribuciones
+¡Cualquier aporte, corrección de errores (bugs) o mejora en la interfaz es bienvenido! Si deseas contribuir, por favor haz un *fork* del repositorio y crea un *Pull Request* con tus cambios.
