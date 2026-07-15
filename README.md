@@ -1,4 +1,4 @@
-# Solucionador del Método de la Esquina Noroeste (MEN)
+# Solucionador del Método de la Esquina Noroeste (MEN) y Suite de Investigación de Operaciones
 
 ## Descripción del Proyecto
 Este proyecto es un software interactivo y educativo diseñado para resolver problemas de transporte de la asignatura de Investigación de Operaciones utilizando el Método de la Esquina Noroeste (MEN). 
