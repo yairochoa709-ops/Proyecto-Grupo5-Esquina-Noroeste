@@ -72,6 +72,9 @@ npm run build
 Una vez finalizado el proceso, el instalador autoejecutable se encontrará dentro de la carpeta `men-desktop/dist-electron/` (el nombre y ruta exacta puede depender del sistema operativo en el que se construya).
 
 ---
+### Descarga directa del ejecutable.exe
+https://drive.google.com/file/d/1DaEmtZBxsEiZxJMq8TcdzXqSwrk8s-_K/view?usp=sharing
+
 
 ## 🤝 Contribuciones
 ¡Cualquier aporte, corrección de errores (bugs) o mejora en la interfaz es bienvenido! Si deseas contribuir, por favor haz un *fork* del repositorio y crea un *Pull Request* con tus cambios.
